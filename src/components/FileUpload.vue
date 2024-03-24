@@ -10,13 +10,13 @@
 <script setup lang='ts'>
 import {ref} from 'vue'
 import * as Papa from 'papaparse'
-import {type StudentPreference, studentPrefSchema, type SupervisorCapacity, validateData} from "./ValidateCsv.ts";
+import {type StudentPreference, type InputData, studentPrefSchema, type SupervisorCapacity, validateData} from "./ValidateCsv.ts";
 import type { ValidationError } from '@apideck/better-ajv-errors';
 import ValidationErrors from "./ValidationErrors.vue";
 
 const props = defineProps(['schema']);
 
-const data = defineModel<StudentPreference[] | SupervisorCapacity[]>('data', {default: []});
+const data = defineModel<InputData>('data', {default: []});
 
 const file = ref<HTMLInputElement | null>(null);
 
