@@ -1,11 +1,13 @@
-# Astro + Vue Example
+# student-allocation
 
-```sh
-npm create astro@latest -- --template framework-vue
-```
+This contains a JS impl of the stable-marriage algorithm deployed on a static web-page along with some specific rules for how EHU Biology want to allocate students to supervisors.
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/withastro/astro/tree/latest/examples/framework-vue)
-[![Open with CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/sandbox/github/withastro/astro/tree/latest/examples/framework-vue)
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/withastro/astro?devcontainer_path=.devcontainer/framework-vue/devcontainer.json)
+[View the site](https://ehubio.github.io/student-allocation/)
 
-This example showcases Astro working with [Vue](https://v3.vuejs.org/).
+Everything here is run on the users client.
+
+Instructions for use
+1. Prepare a csv of student preferences and of supervisor capacities (schema to come)
+2. Optionally include supervisor preferences too
+3. Run the allocation
+4. View and download the results
