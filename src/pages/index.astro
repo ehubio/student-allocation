@@ -1,7 +1,6 @@
 ---
 // Component Imports
-import Counter from '../components/Counter.vue';
-import FileUpload from '../components/FileUpload.vue';
+import Main from '../components/Main.vue';
 
 // Full Astro Component Syntax:
 // https://docs.astro.build/basics/astro-components/
@@ -26,10 +25,7 @@ import FileUpload from '../components/FileUpload.vue';
 	</head>
 	<body>
 		<main>
-			<Counter client:visible>
-				<h1>Hello, Vue!</h1>
-			</Counter>
-			<FileUpload client:visible/>
+			<Main client:visible/>
 		</main>
 	</body>
 </html>

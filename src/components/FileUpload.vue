@@ -1,10 +1,22 @@
 <template>
-  <input ref="file" v-on:change="handleFileUpload()" type="file" accept=".csv">
+  <div>
+    <input ref='file' v-on:change='handleFileUpload()' type='file' accept='.csv'>
+    <validation-errors v-if="errors.length > 0" :errors="errors"></validation-errors>
+    <div v-if="data.length > 0">
+      <h4>Data successfully uploaded</h4>
+    </div>
+  </div>
 </template>
-<script setup lang="ts">
+<script setup lang='ts'>
+import {ref} from 'vue'
+import * as Papa from 'papaparse'
+import {type StudentPreference, studentPrefSchema, type SupervisorCapacity, validateData} from "./ValidateCsv.ts";
+import type { ValidationError } from '@apideck/better-ajv-errors';
+import ValidationErrors from "./ValidationErrors.vue";
 
-import { ref } from "vue"
-import * as Papa from "papaparse"
+const props = defineProps(['schema']);
+
+const data = defineModel<StudentPreference[] | SupervisorCapacity[]>('data', {default: []});
 
 const file = ref<HTMLInputElement | null>(null);
 
@@ -14,30 +26,27 @@ type ParseResults = {
   meta: any
 }
 
+const errors = ref<ValidationError[]>([]);
+
 const handleFileUpload = async() => {
   if (file.value && file.value.files && file.value.files.length > 0) {
     const uploadedFile = file.value.files[0];
-    const data = Papa.parse(uploadedFile, {
+    Papa.parse(uploadedFile, {
       header: true,
       skipEmptyLines: true,
       transform: function(val: string) {
         return val.trim();
       },
       complete: function(results: ParseResults, file: File) {
-        console.log("Parsing complete", results, file);
+        const { errors: errs, parsedData } = validateData(results.data, props.schema);
+        errors.value = errs;
+        if (props.schema === studentPrefSchema) {
+          data.value = parsedData as StudentPreference[];
+        } else {
+          data.value = parsedData as SupervisorCapacity[];
+        }
       }
     });
-    // const reader = new FileReader();
-    //
-    // reader.onload = (event: ProgressEvent<FileReader>) => {
-    //   if (event.target && event.target.result) {
-    //     const csvContent = event.target.result as string;
-    //     // Process csvContent here
-    //     console.log(csvContent);
-    //   }
-    // };
-    //
-    // reader.readAsText(uploadedFile);
   }
 }
 
