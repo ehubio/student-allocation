@@ -4,19 +4,25 @@ import {betterAjvErrors} from '@apideck/better-ajv-errors';
 import type { ValidationError } from '@apideck/better-ajv-errors';
 
 export interface StudentPreference {
-    name: string;
+    id: string;
     programme: string;
     choices: string[];
+    rank: number;
     [key: string]: any; // Allow additional properties
+}
+
+export interface StudentAllocation extends StudentPreference {
+    allocatedSupervisor: string;
 }
 
 export const studentPrefSchema = {
     type: 'object',
-    required: ['name', 'programme', 'first choice', 'second choice', 'third choice', 'fourth choice'],
+    required: ['id', 'programme', 'first choice', 'second choice', 'third choice', 'fourth choice'],
     additionalProperties: true,
     properties: {
-        name: { type: 'string' },
+        id: { type: 'string' },
         programme: { type: 'string' },
+        rank: { type: 'integer' },
         'first choice': {type: 'string'},
         'second choice': {type: 'string'},
         'third choice': {type: 'string'},
@@ -25,20 +31,21 @@ export const studentPrefSchema = {
 };
 
 export interface SupervisorCapacity {
-    name: string;
+    id: string;
     capacity: string;
     programmes: string[];
+    preferences?: string[];
     [key: string]: any; // Allow additional properties
 }
 
 export const supervisorCapacitySchema = {
     type: 'object',
-    required: ['name', 'capacity', 'programme'],
+    required: ['id', 'capacity', 'programme'],
     additionalProperties: true,
     properties: {
-        name: { type: 'string' },
+        id: { type: 'string' },
         capacity: { type: 'number' },
-        programme: {type: 'string'},
+        programme: {type: 'string'}
     }
 }
 

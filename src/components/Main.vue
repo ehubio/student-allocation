@@ -16,7 +16,7 @@ import {
   studentPrefSchema,
   type SupervisorCapacity,
   type StudentPreference
-} from './ValidateCsv.ts';
+} from './validateCsv.ts';
 import {ref} from "vue";
 
 const supervisorData = ref<SupervisorCapacity[]>([]);

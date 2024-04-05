@@ -10,7 +10,7 @@
 <script setup lang='ts'>
 import {ref} from 'vue'
 import * as Papa from 'papaparse'
-import {type StudentPreference, type InputData, studentPrefSchema, type SupervisorCapacity, validateData} from "./ValidateCsv.ts";
+import {type StudentPreference, type InputData, studentPrefSchema, type SupervisorCapacity, validateData} from "./validateCsv.ts";
 import type { ValidationError } from '@apideck/better-ajv-errors';
 import ValidationErrors from "./ValidationErrors.vue";
 
