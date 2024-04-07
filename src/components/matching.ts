@@ -1,17 +1,8 @@
-export interface Student {
-    id: string;
-    preference: Supervisor[];
-    allocation: Supervisor | null;
-}
+import emitter from "./eventBus.ts"
+import type {Student, Supervisor} from "./types.ts";
+import {notEmpty} from "./utils.ts";
 
-export interface Supervisor {
-    id: string;
-    preference: Student[];
-    students: Student[];
-    capacity: number;
-}
-
-function getWorstMatch(supervisor: Supervisor): Student | undefined {
+function getWorstMatch(supervisor: Supervisor): string | undefined {
     if (supervisor.students.length === 0) {
         return undefined;
     } else {
@@ -20,12 +11,15 @@ function getWorstMatch(supervisor: Supervisor): Student | undefined {
     }
 }
 
-function getSuccessors(supervisor: Supervisor): Student[] {
+function getSuccessors(supervisor: Supervisor): string[] {
     const worstStudent = getWorstMatch(supervisor);
     if (!worstStudent) {
         return [];
     }
     const idx = supervisor.preference.indexOf(worstStudent);
+    if (idx == -1) {
+        return [];
+    }
     return supervisor.preference.slice(idx + 1);
 }
 
@@ -50,15 +44,35 @@ function getSuccessors(supervisor: Supervisor): Student[] {
  * @returns List of students with their allocation
  */
 export function solveStudentOptimal(students: Student[], supervisors: Supervisor[]) {
+    emitter.$emit("progress", "Running matching algorithm")
+    function findSupervisorById(id: string): Supervisor | undefined {
+        return supervisors.find((s: Supervisor) => s.id == id)
+    }
+
+    function findStudentById(id: string): Student | undefined {
+        return students.find((s: Student) => s.id == id)
+    }
+
     const freeStudents = [...students];
 
     let student;
     while (student = freeStudents.pop()) {
-        // const student = freeStudents.pop()!;
-        const favouriteSupervisor = student.preference[0];
+        const favouriteSupervisor = findSupervisorById(student.preference[0]);
+
+        if (!favouriteSupervisor) {
+            continue
+        }
+        if (favouriteSupervisor.preference.indexOf(student.id) == -1) {
+            // Don't pair up is the supervisor does not like the potential match
+            continue
+        }
 
         if (favouriteSupervisor.students.length == favouriteSupervisor.capacity) {
-            const worstMatch = getWorstMatch(favouriteSupervisor)
+            const worstMatchId = getWorstMatch(favouriteSupervisor);
+            if (!worstMatchId) {
+                continue
+            }
+            const worstMatch = findStudentById(worstMatchId);
             if (worstMatch) {
                 unmatch_pair(worstMatch, favouriteSupervisor);
                 freeStudents.push(worstMatch);
@@ -68,7 +82,9 @@ export function solveStudentOptimal(students: Student[], supervisors: Supervisor
         match_pair(student, favouriteSupervisor);
 
         if (favouriteSupervisor.students.length == favouriteSupervisor.capacity) {
-            const successors = getSuccessors(favouriteSupervisor);
+            const successors = getSuccessors(favouriteSupervisor)
+                .map((s: string) => findStudentById(s))
+                .filter(notEmpty);
             for (const successor of successors) {
                 delete_pair(successor, favouriteSupervisor)
                 const successorIdx = freeStudents.indexOf(successor);
@@ -81,18 +97,19 @@ export function solveStudentOptimal(students: Student[], supervisors: Supervisor
 }
 
 function match_pair(student: Student, supervisor: Supervisor) {
-    supervisor.students.push(student);
+    supervisor.students.push(student.id);
     // Important to add these in order as when we remove because we're at capacity we do it from the
     // supervisors least-preferred i.e. their last allocated student
     supervisor.students.sort((x, y) => supervisor.preference.indexOf(x) - supervisor.preference.indexOf(y))
-    student.allocation = supervisor
+    student.allocation = supervisor.id
 }
+
 function unmatch_pair(student: Student, supervisor: Supervisor) {
-    student.allocation = null;
-    supervisor.students = supervisor.students.filter(r => r.id !== student.id);
+    student.allocation = undefined;
+    supervisor.students = supervisor.students.filter(r => r !== student.id);
 }
 
 function delete_pair(student: Student, supervisor: Supervisor) {
-    student.preference = student.preference.filter((s: Supervisor) => s.id !== supervisor.id);
-    supervisor.preference = supervisor.preference.filter((s: Student) => s.id !== student.id);
+    student.preference = student.preference.filter((supervisorId: string) => supervisorId !== supervisor.id);
+    supervisor.preference = supervisor.preference.filter((studentId: string) => studentId !== student.id);
 }

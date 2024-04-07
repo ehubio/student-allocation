@@ -10,9 +10,10 @@
 <script setup lang='ts'>
 import {ref} from 'vue'
 import * as Papa from 'papaparse'
-import {type StudentPreference, type InputData, studentPrefSchema, type SupervisorCapacity, validateData} from "./validateCsv.ts";
+import {type InputData, studentPrefSchema, validateData} from "./validateCsv.ts";
 import type { ValidationError } from '@apideck/better-ajv-errors';
 import ValidationErrors from "./ValidationErrors.vue";
+import type {StudentRow, SupervisorRow} from "./types.ts";
 
 const props = defineProps(['schema']);
 
@@ -37,13 +38,16 @@ const handleFileUpload = async() => {
       transform: function(val: string) {
         return val.trim();
       },
+      transformHeader: function(val: string) {
+        return val.trim();
+      },
       complete: function(results: ParseResults, file: File) {
         const { errors: errs, parsedData } = validateData(results.data, props.schema);
         errors.value = errs;
         if (props.schema === studentPrefSchema) {
-          data.value = parsedData as StudentPreference[];
+          data.value = parsedData as StudentRow[];
         } else {
-          data.value = parsedData as SupervisorCapacity[];
+          data.value = parsedData as SupervisorRow[];
         }
       }
     });

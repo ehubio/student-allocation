@@ -1,74 +1,31 @@
-import { assert, expect, test } from 'vitest';
-import type {Student, Supervisor} from "../src/components/matching.ts";
+import { expect, test } from 'vitest';
 import {solveStudentOptimal} from "../src/components/matching.ts";
 import testdata from "./testdata/matching_test.json"
+import type {Student, Supervisor} from "../src/components/types.ts";
 
-// Edit an assertion and save to see HMR in action
-
-test('Math.sqrt()', () => {
-    expect(Math.sqrt(4)).toBe(2);
-    expect(Math.sqrt(144)).toBe(12);
-    expect(Math.sqrt(2)).toBe(Math.SQRT2);
-});
-
-test('JSON', () => {
-    const input = {
-        foo: 'hello',
-        bar: 'world',
-    };
-
-    const output = JSON.stringify(input);
-
-    expect(output).eq('{"foo":"hello","bar":"world"}');
-    assert.deepEqual(JSON.parse(output), input, 'matches original');
-});
-
-const createFromDict = (students_prefs: Map<string, string[]>,
-                        supervisors_prefs: Map<string, string[]>,
-                        supervisor_capacity: Map<string, number>): [Student[], Supervisor[]] => {
+const createFromDict = (studentPrefs: Map<string, string[]>,
+                        supervisorPrefs: Map<string, string[]>,
+                        supervisorCapacity: Map<string, number>): [Student[], Supervisor[]] => {
     const studentArray: Student[] = []
     const supervisorArray: Supervisor[] = []
 
-    students_prefs.forEach((_preferences: string[], studentId: string) => {
+    studentPrefs.forEach((preferences: string[], studentId: string) => {
         studentArray.push({
             id: studentId,
-            preference: [],
-            allocation: null
+            preference: preferences
         });
     })
 
-    supervisors_prefs.forEach((_preferences: string[], supervisorId: string) => {
-        const capacity = supervisor_capacity.get(supervisorId)
+    supervisorPrefs.forEach((preferences: string[], supervisorId: string) => {
+        const capacity = supervisorCapacity.get(supervisorId)
         if (!capacity) {
             throw new Error(`Can't build supervisors and students, missing capacity for ${supervisorId}`)
         }
         supervisorArray.push({
             id: supervisorId,
-            preference: [],
+            preference: preferences,
             students: [],
             capacity: capacity
-        })
-    })
-
-    studentArray.forEach((student: Student) => {
-        const prefs = students_prefs.get(student.id)!
-        student.preference = prefs.map((supervisorId: string) => {
-            const supervisor = supervisorArray.find((s: Supervisor) => s.id === supervisorId);
-            if (!supervisor) {
-                throw new Error(`Can't build supervisors and students, unknown supervisor ${supervisorId} specified for student ${student.id}`)
-            }
-            return supervisor
-        })
-    })
-
-    supervisorArray.forEach((supervisor: Supervisor) => {
-        const prefs = supervisors_prefs.get(supervisor.id)!
-        supervisor.preference = prefs.map((studentId: string) => {
-            const student = studentArray.find((s: Student) => s.id === studentId);
-            if (!student) {
-                throw new Error(`Can't build supervisors and students, unknown student ${studentId} specified for supervisor ${supervisor.id}`)
-            }
-            return student
         })
     })
 
@@ -76,30 +33,30 @@ const createFromDict = (students_prefs: Map<string, string[]>,
 }
 
 const getAllocation = (students: Student[], id: string): string | undefined => {
-    return students.find((s: Student) => s.id == id)?.allocation?.id
+    return students.find((s: Student) => s.id == id)?.allocation
 }
 
 const getStudents = (supervisors: Supervisor[], id: string): string[] | undefined => {
-    return supervisors.find((s: Supervisor) => s.id == id)?.students.map((stu: Student) => stu.id)
+    return supervisors.find((s: Supervisor) => s.id == id)?.students
 }
 
 test('matching algorithm super simple', () => {
-    const student_prefs = new Map<string, string[]>([
+    const studentPrefs = new Map<string, string[]>([
         ["A", ["X"]],
         ["B", ["Y"]],
     ]);
 
-    const supervisor_prefs = new Map<string, string[]>([
+    const supervisorPrefs = new Map<string, string[]>([
         ["X", ["A", "B"]],
         ["Y", ["A", "B"]],
     ]);
 
-    const supervisor_capacity = new Map<string, number>([
+    const supervisorCapacity = new Map<string, number>([
         ["X", 2],
         ["Y", 2],
     ])
 
-    const [students, supervisors] = createFromDict(student_prefs, supervisor_prefs, supervisor_capacity)
+    const [students, supervisors] = createFromDict(studentPrefs, supervisorPrefs, supervisorCapacity)
 
     solveStudentOptimal(students, supervisors)
     expect(getAllocation(students, "A")).toBe("X")
@@ -109,7 +66,7 @@ test('matching algorithm super simple', () => {
 })
 
 test('matching algorithm on example', () => {
-    const student_prefs = new Map<string, string[]>([
+    const studentPrefs = new Map<string, string[]>([
         ["A", ["C"]],
         ["S", ["C", "M"]],
         ["D", ["C", "M", "G"]],
@@ -117,19 +74,19 @@ test('matching algorithm on example', () => {
         ["L", ["M", "C", "G"]],
     ]);
 
-    const supervisor_prefs = new Map<string, string[]>([
+    const supervisorPrefs = new Map<string, string[]>([
         ["M", ["D", "L", "S", "J"]],
         ["C", ["D", "A", "S", "L", "J"]],
         ["G", ["D", "J", "L"]],
     ]);
 
-    const supervisor_capacity = new Map<string, number>([
+    const supervisorCapacity = new Map<string, number>([
         ["M", 2],
         ["C", 2],
         ["G", 2],
     ])
 
-    const [students, supervisors] = createFromDict(student_prefs, supervisor_prefs, supervisor_capacity)
+    const [students, supervisors] = createFromDict(studentPrefs, supervisorPrefs, supervisorCapacity)
 
     solveStudentOptimal(students, supervisors)
 
@@ -145,27 +102,27 @@ test('matching algorithm on example', () => {
 })
 
 test('matching algorithm on example2', () => {
-    const student_prefs = new Map<string, string[]>([
+    const studentPrefs = new Map<string, string[]>([
         ["Group 1", ["Intellectual property", "Privacy"]],
         ["Group 2", ["Privacy", "Fairness in AI"]],
         ["Group 3", ["Privacy", "Social media"]],
     ]);
 
-    const supervisor_prefs = new Map<string, string[]>([
+    const supervisorPrefs = new Map<string, string[]>([
         ["Fairness in AI", ["Group 2"]],
         ["Intellectual property", ["Group 1"]],
         ["Privacy", ["Group 3", "Group 2", "Group 1"]],
         ["Social media", ["Group 3"]],
     ]);
 
-    const supervisor_capacity = new Map<string, number>([
+    const supervisorCapacity = new Map<string, number>([
         ["Fairness in AI", 2],
         ["Intellectual property", 2],
         ["Privacy", 2],
         ["Social media", 2],
     ])
 
-    const [students, supervisors] = createFromDict(student_prefs, supervisor_prefs, supervisor_capacity)
+    const [students, supervisors] = createFromDict(studentPrefs, supervisorPrefs, supervisorCapacity)
 
     solveStudentOptimal(students, supervisors)
 
@@ -177,27 +134,99 @@ test('matching algorithm on example2', () => {
 
 test('student loses all preferences', () => {
     // Test example forces a resident to be removed
-    const student_prefs = new Map<string, string[]>([
+    const studentPrefs = new Map<string, string[]>([
         ["A", ["X"]],
         ["B", ["X", "Y"]],
     ]);
 
-    const supervisor_prefs = new Map<string, string[]>([
+    const supervisorPrefs = new Map<string, string[]>([
         ["X", ["B", "A"]],
         ["Y", ["B"]],
     ]);
 
-    const supervisor_capacity = new Map<string, number>([
+    const supervisorCapacity = new Map<string, number>([
         ["X", 1],
         ["Y", 1],
     ])
 
-    const [students, supervisors] = createFromDict(student_prefs, supervisor_prefs, supervisor_capacity)
+    const [students, supervisors] = createFromDict(studentPrefs, supervisorPrefs, supervisorCapacity)
 
     solveStudentOptimal(students, supervisors)
 
     expect(getStudents(supervisors, "X")).toStrictEqual(["B"])
     expect(getStudents(supervisors, "Y")).toStrictEqual([])
+})
+
+test('student without preference is ignored', () => {
+    const studentPrefs = new Map<string, string[]>([
+        ["A", ["X"]],
+        ["B", []]
+    ])
+
+    const supervisorPrefs = new Map<string, string[]>([
+        ["X", ["A", "B"]],
+        ["Y", ["A", "B"]]
+    ])
+
+    const supervisorCapacity = new Map<string, number>([
+        ["X", 2],
+        ["Y", 2],
+    ])
+
+    const [students, supervisors] = createFromDict(studentPrefs, supervisorPrefs, supervisorCapacity)
+
+    solveStudentOptimal(students, supervisors)
+    expect(getStudents(supervisors, "X")).toStrictEqual(["A"])
+    expect(getStudents(supervisors, "Y")).toStrictEqual([])
+
+    expect(getAllocation(students, "B")).toBeUndefined()
+})
+
+test('student prefs used if no supervisor pref set', () => {
+    const studentPrefs = new Map<string, string[]>([
+        ["A", ["X"]],
+        ["B", ["Y"]]
+    ])
+
+    const supervisorPrefs = new Map<string, string[]>([
+        ["X", ["A", "B"]],
+        ["Y", []]
+    ])
+
+    const supervisorCapacity = new Map<string, number>([
+        ["X", 1],
+        ["Y", 1],
+    ])
+
+    const [students, supervisors] = createFromDict(studentPrefs, supervisorPrefs, supervisorCapacity)
+
+    solveStudentOptimal(students, supervisors)
+    expect(getStudents(supervisors, "X")).toStrictEqual(["A"])
+    expect(getStudents(supervisors, "Y")).toStrictEqual([])
+})
+
+test('student prefs taken into account if present', () => {
+    const studentPrefs = new Map<string, string[]>([
+        ["A", ["X"]],
+        ["B", ["Y"]],
+        ["C", ["Y"]],
+    ])
+
+    const supervisorPrefs = new Map<string, string[]>([
+        ["X", ["A", "B"]],
+        ["Y", ["B"]]
+    ])
+
+    const supervisorCapacity = new Map<string, number>([
+        ["X", 1],
+        ["Y", 1],
+    ])
+
+    const [students, supervisors] = createFromDict(studentPrefs, supervisorPrefs, supervisorCapacity)
+
+    solveStudentOptimal(students, supervisors)
+    expect(getStudents(supervisors, "X")).toStrictEqual(["A"])
+    expect(getStudents(supervisors, "Y")).toStrictEqual(["B"])
 })
 
 const jsonToMap = ((json: any): Map<string, string[]> => {
@@ -206,31 +235,22 @@ const jsonToMap = ((json: any): Map<string, string[]> => {
         res.set(key, (value as number[]).map(String))
     }
     return res
-    // const entries = Object.entries(json);
-    // const value = entries.map(entry => {
-    //     const value = JSON.parse(entry[1])
-    //     [entry[0], entry[1].map()]
-    // })
 })
 
-test('large data test', () => {
-    const student_prefs = jsonToMap(testdata.residents);
-    const supervisor_prefs = jsonToMap(testdata.hospitals);
+test('large data test runs', () => {
+    const studentPrefs = jsonToMap(testdata.residents);
+    const supervisorPrefs = jsonToMap(testdata.hospitals);
 
-    const supervisor_capacity: Map<string, number> = new Map();
+    const supervisorCapacity: Map<string, number> = new Map();
 
-    for (const [key, _] of supervisor_prefs) {
-        supervisor_capacity.set(key, 1);
+    for (const [key, _] of supervisorPrefs) {
+        supervisorCapacity.set(key, 1);
     }
 
-    console.log(supervisor_capacity)
-    const [students, supervisors] = createFromDict(student_prefs, supervisor_prefs, supervisor_capacity)
-
-    console.log(students)
-    console.log(supervisors)
+    const [students, supervisors] = createFromDict(studentPrefs, supervisorPrefs, supervisorCapacity)
 
     solveStudentOptimal(students, supervisors)
 
-    expect(getStudents(supervisors, "X")).toStrictEqual(["B"])
-    expect(getStudents(supervisors, "Y")).toStrictEqual([])
+    expect(getStudents(supervisors, "0")).toStrictEqual(["0"])
+    expect(getStudents(supervisors, "3")).toStrictEqual([])
 })

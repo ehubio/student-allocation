@@ -2,18 +2,7 @@ import Ajv from 'ajv';
 import type { ValidateFunction } from 'ajv';
 import {betterAjvErrors} from '@apideck/better-ajv-errors';
 import type { ValidationError } from '@apideck/better-ajv-errors';
-
-export interface StudentPreference {
-    id: string;
-    programme: string;
-    choices: string[];
-    rank: number;
-    [key: string]: any; // Allow additional properties
-}
-
-export interface StudentAllocation extends StudentPreference {
-    allocatedSupervisor: string;
-}
+import type {StudentRow, SupervisorRow} from "./types.ts";
 
 export const studentPrefSchema = {
     type: 'object',
@@ -30,14 +19,6 @@ export const studentPrefSchema = {
     }
 };
 
-export interface SupervisorCapacity {
-    id: string;
-    capacity: string;
-    programmes: string[];
-    preferences?: string[];
-    [key: string]: any; // Allow additional properties
-}
-
 export const supervisorCapacitySchema = {
     type: 'object',
     required: ['id', 'capacity', 'programme'],
@@ -49,7 +30,7 @@ export const supervisorCapacitySchema = {
     }
 }
 
-export type InputData = StudentPreference[] | SupervisorCapacity[]
+export type InputData = StudentRow[] | SupervisorRow[]
 
 /**
  * Validates an array of objects against a JSON schema.
@@ -64,21 +45,31 @@ export function validateData<T extends { [key: string]: any }>(data: InputData, 
 
     const errors: ValidationError[] = [];
     const parsedData: T[] = [];
-    const choiceKeys = ['first choice', 'second choice', 'third choice', 'fourth choice']
+    const preferenceKeys = ['first choice', 'second choice', 'third choice', 'fourth choice']
 
-    data.forEach((obj: StudentPreference | SupervisorCapacity) => {
+    data.forEach((obj: StudentRow | SupervisorRow) => {
+        if ("rank" in obj) {
+            obj.rank = parseInt(obj.rank)
+        } else {
+            obj.rank = undefined
+        }
+        if ("capacity" in obj) {
+            obj.capacity = parseInt(obj.capacity)
+        }
         const valid = validate(obj);
         if (valid) {
             const parsedObj: any = { ...obj };
+            parsedObj.preference = [];
+            parsedObj.students = [];
 
             // Parse choices into an array
-            const choices: string[] = [];
-            for (const choice of choiceKeys) {
-                if (choice in obj && obj[choice]) {
-                    choices.push(obj[choice]);
+            const preferences: string[] = [];
+            for (const preference of preferenceKeys) {
+                if (preference in obj && obj[preference]) {
+                    preferences.push(obj[preference]);
                 }
             }
-            parsedObj.choices = choices;
+            parsedObj.preference = preferences;
 
             parsedData.push(parsedObj as T);
         } else {
