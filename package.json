@@ -14,6 +14,7 @@
     "@apideck/better-ajv-errors": "^0.3.6",
     "@astrojs/check": "^0.5.9",
     "@astrojs/vue": "^4.0.9",
+    "@types/papaparse": "^5.3.14",
     "ajv": "^8.12.0",
     "astro": "^4.5.9",
     "papaparse": "^5.4.1",
@@ -23,6 +24,7 @@
     "vue": "^3.4.21"
   },
   "devDependencies": {
+    "@types/node": "^20.12.5",
     "fs": "^0.0.1-security"
   }
 }

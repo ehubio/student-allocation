@@ -33,7 +33,7 @@ export function setSupervisorPreferences(students: StudentRow[], supervisors: Su
 
     const sortedStudents = [...students]
     const supervisorPref = sortedStudents
-        .sort((a, b) => a.rank - b.rank)
+        .sort((a, b) => a.rank! - b.rank!)
         .map(s => s.id)
 
     supervisors.forEach(s => s.preference = supervisorPref)
