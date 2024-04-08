@@ -1,6 +1,10 @@
 <template>
-  <div>
-    <button @click="download">Download results</button>
+  <div class="flex flex-col items-center mt-10">
+    <button @click="download"
+            role="button"
+            class="btn btn-primary">
+      Download results
+    </button>
   </div>
 </template>
 <script setup lang="ts">

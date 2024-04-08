@@ -13,7 +13,7 @@ export function runAllocation(students: StudentRow[], supervisors: SupervisorRow
     // remove resit students
     setSupervisorPreferences(students, supervisors);
     solveStudentOptimal(students, supervisors);
-    emitter.$emit("progress", "Completed matching algorithm");
+    emitter.$emit("progress", "Completed matching algorithm", "bg-success");
     // allocate those with no preferences to remaining supervisor
     return true;
 }

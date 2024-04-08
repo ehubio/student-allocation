@@ -1,9 +1,8 @@
 <template>
-  <div>
-    <h1>Log Messages</h1>
-    <ul>
-      <li v-for="message in logMessages" :key="message">{{ message }}</li>
-    </ul>
+  <div v-if="logMessages.length > 0" class="mockup-code max-h-96 overflow-y-scroll">
+    <pre :class="['h-6', style]" v-for="([message, style], index) in logMessages" :key="index" :data-prefix="index + 1">
+      <code>{{message}}</code>
+    </pre>
   </div>
 </template>
 
@@ -11,11 +10,14 @@
 import {onMounted, onUnmounted, ref} from 'vue';
 import emitter from "./eventBus.ts"
 
-const logMessages = ref<string[]>([]);
+const logMessages = ref<[string, string][]>([]);
 
 onMounted(() => {
-  emitter.$on("progress", (message: string) => {
-    logMessages.value.push(message)
+  emitter.$on("progress", (message: string, style: string) => {
+    if (!style) {
+      style = ""
+    }
+    logMessages.value.push([message, style])
   })
 })
 

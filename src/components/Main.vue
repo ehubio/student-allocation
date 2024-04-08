@@ -1,17 +1,22 @@
 <template>
-  <div>
-    <h3>Student preferences</h3>
-    <FileUpload :schema='studentPrefSchema'
-                v-model:data='studentData'></FileUpload>
-    <h3>Supervisor capacity</h3>
-    <FileUpload :schema='supervisorCapacitySchema'
-                v-model:data='supervisorData'></FileUpload>
-    <button v-if="studentData.length > 0 && supervisorData.length > 0"
+  <div class="px-40">
+    <div class="space-y-1">
+    <FileUpload title='Student preferences'
+                  :schema='studentPrefSchema'
+                  v-model:data='studentData'/>
+    <FileUpload title='Supervisor capacity'
+                  :schema='supervisorCapacitySchema'
+                  v-model:data='supervisorData'/>
+    </div>
+    <div class="flex flex-col items-center mt-10">
+    <button class="btn btn-primary justify-center"
+            v-if="studentData.length > 0 && supervisorData.length > 0"
             role="button"
             @click="allocate">
       Run allocation
     </button>
-    <Progress/>
+    </div>
+    <Progress class="mt-5"/>
     <ResultDownload v-if="allocationComplete"
                     :student-data="studentData"/>
 
