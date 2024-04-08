@@ -1,4 +1,4 @@
-const emitter = require("tiny-emitter/instance");
+import emitter from "tiny-emitter/instance";
 
 export default {
     $on: (...args: any[]) => emitter.on(...args),
