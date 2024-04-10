@@ -74,19 +74,19 @@ export function solveStudentOptimal(students: Student[], supervisors: Supervisor
             }
             const worstMatch = findStudentById(worstMatchId);
             if (worstMatch) {
-                unmatch_pair(worstMatch, favouriteSupervisor);
+                unmatchPair(worstMatch, favouriteSupervisor);
                 freeStudents.push(worstMatch);
             }
         }
 
-        match_pair(student, favouriteSupervisor);
+        matchPair(student, favouriteSupervisor);
 
         if (favouriteSupervisor.students.length == favouriteSupervisor.capacity) {
             const successors = getSuccessors(favouriteSupervisor)
                 .map((s: string) => findStudentById(s))
                 .filter(notEmpty);
             for (const successor of successors) {
-                delete_pair(successor, favouriteSupervisor)
+                deletePair(successor, favouriteSupervisor)
                 const successorIdx = freeStudents.indexOf(successor);
                 if (successor.preference.length === 0 && successorIdx > -1) {
                     freeStudents.splice(successorIdx, 1);
@@ -96,7 +96,7 @@ export function solveStudentOptimal(students: Student[], supervisors: Supervisor
     }
 }
 
-function match_pair(student: Student, supervisor: Supervisor) {
+export function matchPair(student: Student, supervisor: Supervisor) {
     supervisor.students.push(student.id);
     // Important to add these in order as when we remove because we're at capacity we do it from the
     // supervisors least-preferred i.e. their last allocated student
@@ -104,12 +104,12 @@ function match_pair(student: Student, supervisor: Supervisor) {
     student.allocation = supervisor.id
 }
 
-function unmatch_pair(student: Student, supervisor: Supervisor) {
+function unmatchPair(student: Student, supervisor: Supervisor) {
     student.allocation = undefined;
     supervisor.students = supervisor.students.filter(r => r !== student.id);
 }
 
-function delete_pair(student: Student, supervisor: Supervisor) {
+function deletePair(student: Student, supervisor: Supervisor) {
     student.preference = student.preference.filter((supervisorId: string) => supervisorId !== supervisor.id);
     supervisor.preference = supervisor.preference.filter((studentId: string) => studentId !== student.id);
 }

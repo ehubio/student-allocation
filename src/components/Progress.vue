@@ -7,7 +7,7 @@
 </template>
 
 <script setup lang='ts'>
-import {onMounted, onUnmounted, ref} from 'vue';
+import {onMounted, onUnmounted, ref, watch} from 'vue';
 import emitter from "./eventBus.ts"
 
 const logMessages = ref<[string, string][]>([]);
@@ -18,6 +18,10 @@ onMounted(() => {
       style = ""
     }
     logMessages.value.push([message, style])
+  })
+
+  emitter.$on("clear", () => {
+    logMessages.value = []
   })
 })
 

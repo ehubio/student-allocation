@@ -1,7 +1,7 @@
 import type {StudentRow, SupervisorRow} from "./types.ts";
 import emitter from "./eventBus.ts"
-import {solveStudentOptimal} from "./matching.ts";
-import {notEmpty} from "./utils.ts";
+import {matchPair, solveStudentOptimal} from "./matching.ts";
+import {isEmpty, notEmpty} from "./utils.ts";
 
 export function runAllocation(students: StudentRow[], supervisors: SupervisorRow[]) {
     emitter.$emit("progress", "Starting allocation");
@@ -14,7 +14,8 @@ export function runAllocation(students: StudentRow[], supervisors: SupervisorRow
     setSupervisorPreferences(students, supervisors);
     solveStudentOptimal(students, supervisors);
     emitter.$emit("progress", "Completed matching algorithm", "bg-success");
-    // allocate those with no preferences to remaining supervisor
+    allocateRemaining(students, supervisors);
+    emitter.$emit("progress", "Completed allocating remaining students", "bg-success")
     return true;
 }
 
@@ -48,4 +49,55 @@ function shuffle(array: any[]) {
         array[top] = tmp;
     }
     return array;
+}
+
+function allocateRemaining(students: StudentRow[], supervisors: SupervisorRow[]) {
+    const unallocated = students.filter(s => isEmpty(s.allocation))
+    emitter.$emit("progress", `Allocating ${unallocated.length} remaining students who did not set preferences`)
+    const remainingCapacity = supervisors.filter(s => s.capacity > s.students.length)
+    remainingCapacity.forEach(s => {
+        emitter.$emit("progress", `${s.id} has ${s.students.length}/${s.capacity} students allocated`)
+    })
+    const unallocatedByProgramme = groupBy(unallocated, "programme");
+    const remainingSupervisorsByProgramme = groupBy(remainingCapacity, "programmes")
+    for (const programme in unallocatedByProgramme) {
+        if (isEmpty(remainingSupervisorsByProgramme[programme]) ||
+            remainingSupervisorsByProgramme[programme].length == 0) {
+            emitter.$on("progress", `No supervisors left for programme ${programme}`)
+            continue
+        }
+        allocateRemainingByProgramme(unallocatedByProgramme[programme], remainingSupervisorsByProgramme[programme])
+    }
+}
+
+function allocateRemainingByProgramme(students: StudentRow[], supervisors: SupervisorRow[]) {
+    const freeStudents = [...students];
+
+    let student;
+    while (student = freeStudents.pop()) {
+        const highestCapacitySupervisor = supervisors.reduce((highestCapacity, s) => {
+            const thisCapacity = (s.capacity - s.students.length) / s.capacity;
+            const maxCapacity = highestCapacity ?
+                (highestCapacity.capacity - highestCapacity.students.length) / highestCapacity.capacity : Infinity;
+            if (thisCapacity > maxCapacity) {
+                return s
+            } else {
+                return highestCapacity
+            }
+        }, supervisors[0])
+        matchPair(student, highestCapacitySupervisor)
+    }
+}
+
+function groupBy(arr: any[], property: string) {
+    return arr.reduce((memo, x) => {
+        const values = Array.isArray(x[property]) ? x[property] : [x[property]];
+        values.forEach((value: any) => {
+            if (!memo[value]) {
+                memo[value] = [];
+            }
+            memo[value].push(x);
+        });
+        return memo;
+    }, {});
 }

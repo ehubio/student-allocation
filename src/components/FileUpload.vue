@@ -16,7 +16,7 @@
              v-on:change='handleFileUpload()'
              type='file'
              accept='.csv'
-             :class="[uploadBorderColour, 'file-input', 'file-input-bordered', 'file-input-md', 'w-full', 'max-w-xs']">
+             :class="[uploadBorderColour, 'file-input', 'file-input-bordered', 'file-input-md', 'w-full', 'max-w-md']">
       </div>
     <validation-errors v-if="uploadStatus == UploadStatus.Error" :errors="errors"></validation-errors>
   </div>

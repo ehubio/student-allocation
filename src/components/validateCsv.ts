@@ -21,12 +21,15 @@ export const studentPrefSchema = {
 
 export const supervisorCapacitySchema = {
     type: 'object',
-    required: ['id', 'capacity', 'programme'],
+    required: ['id', 'capacity', 'programme 1', 'programme 2', 'programme 3', 'programme 4'],
     additionalProperties: true,
     properties: {
         id: { type: 'string' },
         capacity: { type: 'number' },
-        programme: {type: 'string'}
+        'programme 1': {type: 'string'},
+        'programme 2': {type: 'string'},
+        'programme 3': {type: 'string'},
+        'programme 4': {type: 'string'},
     }
 }
 
@@ -40,12 +43,14 @@ export type InputData = StudentRow[] | SupervisorRow[]
  * @returns An array of user-friendly error messages if validation fails, otherwise an empty array.
  */
 export function validateData<T extends { [key: string]: any }>(data: InputData, schema: object): { errors: ValidationError[]; parsedData: T[] } {
+    // TODO: tidy this up a bit, split supervisor and student parts
     const ajv = new Ajv({ allErrors: true });
     const validate: ValidateFunction = ajv.compile(schema);
 
     const errors: ValidationError[] = [];
     const parsedData: T[] = [];
     const preferenceKeys = ['first choice', 'second choice', 'third choice', 'fourth choice']
+    const programmeKeys = ['programme 1', 'programme 2', 'programme 3', 'programme 4']
 
     data.forEach((obj: StudentRow | SupervisorRow) => {
         if ("rank" in obj) {
@@ -70,6 +75,15 @@ export function validateData<T extends { [key: string]: any }>(data: InputData, 
                 }
             }
             parsedObj.preference = preferences;
+
+            // Parse programmes into an array
+            const programmes: string[] = [];
+            for (const programme of programmeKeys) {
+                if (programme in obj && obj[programme]) {
+                    programmes.push(obj[programme]);
+                }
+            }
+            parsedObj.programmes = programmes;
 
             parsedData.push(parsedObj as T);
         } else {
