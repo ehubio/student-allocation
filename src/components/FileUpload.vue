@@ -8,9 +8,11 @@
         </svg>
       </template>
       <template v-else-if="uploadStatus == UploadStatus.Error">
-        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-error shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
+        <div @click="clearUpload()" class="py-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="stroke-error shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </div>
       </template>
       <input ref='file'
              v-on:change='handleFileUpload()'
@@ -87,6 +89,15 @@ const handleFileUpload = async() => {
         }
       }
     });
+  }
+}
+
+const clearUpload = () => {
+  if (file.value?.value) {
+    file.value.value = "";
+    data.value = [];
+    uploadStatus.value = UploadStatus.Pending;
+    errors.value = [];
   }
 }
 

@@ -87,7 +87,6 @@ export function validateData<T extends { [key: string]: any }>(data: InputData, 
 
             parsedData.push(parsedObj as T);
         } else {
-            console.log("valid", validate.errors)
             const betterError = betterAjvErrors({ schema, data, errors: validate.errors });
             errors.push(...betterError);
         }

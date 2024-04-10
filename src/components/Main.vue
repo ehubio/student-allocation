@@ -19,8 +19,12 @@
         Run allocation
       </button>
     </div>
-    <Progress class="mt-5"/>
-    <ResultDownload v-if="allocationComplete"
+    <div v-if="allocationComplete" role="alert" class="alert alert-success mt-5">
+      <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+      <span>Matching completed successfully</span>
+    </div>
+    <ResultDownload class="mt-5"
+                    v-if="allocationComplete"
                     :student-data="allocatedStudentData"/>
   </div>
 </template>
@@ -31,7 +35,7 @@ import {
   supervisorCapacitySchema,
   studentPrefSchema
 } from './validateCsv.ts';
-import {ref, toRaw} from "vue";
+import {ref, toRaw, watch} from "vue";
 import {runAllocation} from "./runAllocation.ts";
 import Progress from "./Progress.vue";
 import type {StudentRow, SupervisorRow} from "./types.ts";
@@ -47,11 +51,15 @@ const allocationComplete = ref<boolean>(false);
 
 const allocate = () => {
   emitter.$emit("clear");
-  // Copy the data as we don't want to modify original incase someone re-runs it
+  // Copy the data as we don't want to modify original in-case someone re-runs it
   allocatedStudentData.value = structuredClone(toRaw(studentData.value))
   allocatedSupervisorData.value = structuredClone(toRaw(supervisorData.value))
   allocationComplete.value = runAllocation(allocatedStudentData.value, allocatedSupervisorData.value)
 }
+
+watch([studentData, supervisorData], () => {
+  allocationComplete.value = false;
+})
 
 </script>
 

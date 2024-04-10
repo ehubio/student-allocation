@@ -3,16 +3,12 @@ import * as Papa from 'papaparse'
 
 export function studentToCsvString(student: StudentRow[]): string {
     const serializeData = student.map((s: StudentRow) => {
-        return {
-            id: s.id,
-            programme: s.programme,
-            rank: s.rank,
-            allocation: s.allocation,
-            "first choice": s["first choice"],
-            "second choice": s["second choice"],
-            "third choice": s["third choice"],
-            "fourth choice": s["fourth choice"]
-        }
+        console.log(s)
+        const out = s as any;
+        delete out.programmes;
+        delete out.students;
+        delete out.preference;
+        return out
     })
     return Papa.unparse(serializeData)
 }

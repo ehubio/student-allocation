@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col items-center mt-10">
+  <div class="flex flex-col items-center">
     <button @click="download"
             role="button"
             class="btn btn-primary">
