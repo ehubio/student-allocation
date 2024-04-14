@@ -22,6 +22,7 @@ export function runAllocation(students: StudentRow[], supervisors: SupervisorRow
     emitter.$emit("progress", "Completed matching algorithm", "bg-success");
     allocateRemaining(students, supervisors);
     emitter.$emit("progress", "Completed allocating remaining students", "bg-success")
+    summariseResults(students, supervisors);
     return res;
 }
 
@@ -154,21 +155,20 @@ function shuffle(array: any[]) {
 }
 
 function allocateRemaining(students: StudentRow[], supervisors: SupervisorRow[]) {
-    const unallocated = students.filter(s => isEmpty(s.allocation))
-    emitter.$emit("progress", `Allocating ${unallocated.length} remaining students who did not set preferences`)
-    const remainingCapacity = supervisors.filter(s => s.capacity > s.students.length)
-    remainingCapacity.forEach(s => {
-        emitter.$emit("progress", `${s.id} has ${s.students.length}/${s.capacity} students allocated`)
-    })
+    const unallocated = students.filter(s => isEmpty(s.allocation));
+    const withoutPref = unallocated.filter(s => s["first choice"] === "");
+    emitter.$emit("progress", `Allocating ${unallocated.length} remaining students, ${withoutPref.length} of which did not set preferences`)
+
+    const remainingCapacity = supervisors.filter(s => s.capacity > s.students.length);
     const unallocatedByProgramme = groupBy(unallocated, "programme");
-    const remainingSupervisorsByProgramme = groupBy(remainingCapacity, "programmes")
+    const remainingSupervisorsByProgramme = groupBy(remainingCapacity, "programmes");
     for (const programme in unallocatedByProgramme) {
         if (isEmpty(remainingSupervisorsByProgramme[programme]) ||
             remainingSupervisorsByProgramme[programme].length == 0) {
-            emitter.$on("progress", `No supervisors left for programme ${programme}`)
+            emitter.$on("progress", `No supervisors left for programme ${programme}`);
             continue
         }
-        allocateRemainingByProgramme(unallocatedByProgramme[programme], remainingSupervisorsByProgramme[programme])
+        allocateRemainingByProgramme(unallocatedByProgramme[programme], remainingSupervisorsByProgramme[programme]);
     }
 }
 
@@ -189,4 +189,34 @@ function allocateRemainingByProgramme(students: StudentRow[], supervisors: Super
         }, supervisors[0])
         matchPair(student, highestCapacitySupervisor)
     }
+}
+
+export function summariseResults(students: StudentRow[], supervisors: SupervisorRow[]) {
+    supervisors.forEach(s => {
+        emitter.$emit("progress", `${s.id} has ${s.students.length}/${s.capacity} students allocated`)
+    })
+    // Print for the students, how many got first choice, second, third etc.
+    const choicesCount = [0, 0, 0, 0, 0];
+    students.forEach(student => {
+        if (student["first choice"]) {
+            if (student.allocation == student["first choice"]) {
+                choicesCount[0]++
+            } else if (student.allocation == student["second choice"]) {
+                choicesCount[1]++
+            } else if (student.allocation == student["third choice"]) {
+                choicesCount[2]++
+            } else if (student.allocation == student["fourth choice"]) {
+                choicesCount[3]++
+            } else {
+                choicesCount[4]++
+            }
+        }
+    })
+    choicesCount.forEach((n: number, i: number) => {
+        if (i != 4) {
+            emitter.$emit("progress", `Choice ${i + 1}: ${n} students`)
+        } else {
+            emitter.$emit("progress", `None of submitted choices: ${n} students`)
+        }
+    })
 }
