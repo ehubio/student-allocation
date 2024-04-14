@@ -36,6 +36,10 @@
           After this we run the matching algorithm. If there are any students who did not submit preferences, we now
           allocate them to the supervisor with the fewest students assigned who can supervise for their degree programme.
         </p>
+        <p class="py-6">
+          The matching algorithm is run entirely in your browser. No data is sent to the server, this is a completely
+          static site. Non-anonymised data can be uploaded and used without worry.
+        </p>
         <a class="btn btn-primary" href="/student-allocation/">
           Get Started
         </a>
