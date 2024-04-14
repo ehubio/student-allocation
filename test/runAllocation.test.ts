@@ -6,7 +6,6 @@ import {
     setSupervisorPreferences,
     validateStudentSupervisors
 } from "../src/components/runAllocation.ts";
-import {validateData} from "../src/components/validateCsv.ts";
 
 test('can set supervisor preferences from ranks', () => {
     const testStudents: StudentRow[] = [

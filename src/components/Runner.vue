@@ -66,7 +66,7 @@ import Progress from "./Progress.vue";
 import type {StudentRow, SupervisorRow} from "./types.ts";
 import ResultDownload from "./ResultDownload.vue";
 import emitter from "./eventBus.ts";
-import Methods from "./Methods.vue";
+import Methods from "./MethodsText.vue";
 
 const supervisorData = ref<SupervisorRow[]>([]);
 const studentData = ref<StudentRow[]>([]);
