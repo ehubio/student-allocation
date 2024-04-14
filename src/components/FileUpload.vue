@@ -2,6 +2,12 @@
   <div class="space-y-1">
     <div class="flex flex-row space-x-1 items-center">
       <h3 class="flex-auto">{{title}}</h3>
+      <a class="btn btn-ghost" :href="'/student-allocation/files/' + link">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        Download template
+      </a>
       <template v-if="uploadStatus == UploadStatus.Success">
         <svg xmlns="http://www.w3.org/2000/svg" class="shrink-0 h-6 w-6 stroke-success" fill="none" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L20 7" />
@@ -13,6 +19,11 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </div>
+      </template>
+      <template v-else>
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-none shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
       </template>
       <input ref='file'
              v-on:change='handleFileUpload()'
@@ -31,7 +42,7 @@ import type { ValidationError } from '@apideck/better-ajv-errors';
 import ValidationErrors from "./ValidationErrors.vue";
 import type {StudentRow, SupervisorRow} from "./types.ts";
 
-const props = defineProps(['schema', 'title']);
+const props = defineProps(['schema', 'title', 'link']);
 
 const data = defineModel<InputData>('data', {default: []});
 

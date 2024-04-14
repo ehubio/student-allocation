@@ -18,9 +18,11 @@
       <div class="space-y-1">
         <FileUpload title='Student preferences'
                     :schema='studentPrefSchema'
+                    link="student_template.csv"
                     v-model:data='studentData'/>
         <FileUpload title='Supervisor capacity'
                     :schema='supervisorCapacitySchema'
+                    link="supervisor_template.csv"
                     v-model:data='supervisorData'/>
       </div>
       <div class="flex flex-col items-center mt-10">
