@@ -128,9 +128,9 @@ export function setSupervisorPreferences(students: StudentRow[], supervisors: Su
 
     if (studentRanks.length != students.length) {
         emitter.$emit("progress", "Randomising rank for any unranked students")
-        const maxRank = Math.max(...studentRanks) ? 1 : Math.max(...studentRanks);
+        const maxRank = studentRanks.length > 0 ? Math.max(...studentRanks) : 0;
         const missingRank = students.filter((s: StudentRow) => s.rank === undefined)
-        const ranks = Array.from({length: missingRank.length}, (_v, k) => k + maxRank);
+        const ranks = Array.from({length: missingRank.length}, (_v, k) => k + maxRank + 1);
         const randomRanks = shuffle(ranks)
         missingRank.forEach((s: StudentRow, index: number) => s.rank = randomRanks[index])
     }

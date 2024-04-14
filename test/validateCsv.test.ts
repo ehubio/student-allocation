@@ -29,17 +29,17 @@ test('can read valid student csv', () => {
     expect(studentData[0]).toHaveProperty("id", "A")
     expect(studentData[0]).toHaveProperty("programme", "P1")
     expect(studentData[0]).toHaveProperty("preference", ["W", "X", "Y", "Z"])
-    expect(studentData[0]).not.toHaveProperty("rank")
+    expect(studentData[0]).toHaveProperty("rank", undefined)
 
     expect(studentData[1]).toHaveProperty("id", "B")
     expect(studentData[1]).toHaveProperty("programme", "P2")
     expect(studentData[1]).toHaveProperty("preference", ["Y", "W", "X"])
-    expect(studentData[1]).not.toHaveProperty("rank")
+    expect(studentData[1]).toHaveProperty("rank", undefined)
 
     expect(studentData[2]).toHaveProperty("id", "C")
     expect(studentData[2]).toHaveProperty("programme", "P1")
     expect(studentData[2]).toHaveProperty("preference", ["X", "Y", "W", "Z"])
-    expect(studentData[2]).not.toHaveProperty("rank")
+    expect(studentData[2]).toHaveProperty("rank", undefined)
 })
 
 test('can read valid student csv with rank', () => {
@@ -78,25 +78,25 @@ test('can read valid supervisor csv', () => {
     expect(supervisorData).toHaveLength(4);
     expect(supervisorData[0]).toHaveProperty("id", "W")
     expect(supervisorData[0]).toHaveProperty("capacity", 1)
-    expect(supervisorData[0]).toHaveProperty("programme", "P1")
+    expect(supervisorData[0]).toHaveProperty("programmes", ["P1"])
     expect(supervisorData[0]).toHaveProperty("preference", [])
     expect(supervisorData[0]).toHaveProperty("students", [])
 
     expect(supervisorData[1]).toHaveProperty("id", "X")
     expect(supervisorData[1]).toHaveProperty("capacity", 2)
-    expect(supervisorData[1]).toHaveProperty("programme", "P2")
+    expect(supervisorData[1]).toHaveProperty("programmes", ["P2"])
     expect(supervisorData[1]).toHaveProperty("preference", [])
     expect(supervisorData[1]).toHaveProperty("students", [])
 
     expect(supervisorData[2]).toHaveProperty("id", "Y")
     expect(supervisorData[2]).toHaveProperty("capacity", 1)
-    expect(supervisorData[2]).toHaveProperty("programme", "P1")
+    expect(supervisorData[2]).toHaveProperty("programmes", ["P1"])
     expect(supervisorData[2]).toHaveProperty("preference", [])
     expect(supervisorData[2]).toHaveProperty("students", [])
 
     expect(supervisorData[3]).toHaveProperty("id", "Z")
     expect(supervisorData[3]).toHaveProperty("capacity", 2)
-    expect(supervisorData[3]).toHaveProperty("programme", "P1")
+    expect(supervisorData[3]).toHaveProperty("programmes", ["P1"])
     expect(supervisorData[3]).toHaveProperty("preference", [])
     expect(supervisorData[3]).toHaveProperty("students", [])
 })

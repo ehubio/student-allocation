@@ -1,5 +1,5 @@
-id,capacity,programme
-W,1,P1
-X,2,P2
-Y,1,P1
-Z,2,P1
+id,capacity,programme 1,programme 2,programme 3,programme 4
+W,1,P1,,,
+X,2,P2,,,
+Y,1,P1,,,
+Z,2,P1,,,

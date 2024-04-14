@@ -78,7 +78,7 @@ test('can set supervisor preferences randomly', () => {
     expect(testSupervisor[0].preference).toStrictEqual(testSupervisor[1].preference)
 
     const ranks = testStudents.map(s => s.rank);
-    expect(ranks.sort()).toStrictEqual([0, 1].sort())
+    expect(ranks.sort()).toStrictEqual([1, 2].sort())
 })
 
 test('can set supervisor preferences with mix of random and ranked', () => {
