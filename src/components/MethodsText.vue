@@ -10,10 +10,10 @@
         </p>
         <p class="py-6">
           To use this site you need two files. Firstly, a list of students and their preferences, with columns 'id',
-          'programme', 'first choice', 'second choice', 'third choice', 'fourth choice' and optionally a 'rank' column.
-          If the input file contains additional columns these will be ignored. Secondly, a list supervisors and the
-          degree programmes they can supervise. Containing columns 'id', 'capacity', 'programme 1', 'programme 2',
-          'programme 3' and 'programme 4'.
+          'programme', 'first choice', 'second choice', 'third choice', 'fourth choice' and optionally a 'rank' and
+          an 'allocation' column. If either input file contains additional columns these will be ignored.
+          Secondly, a list supervisors and the degree programmes they can supervise. Containing columns 'id',
+          'capacity', 'programme 1', 'programme 2', 'programme 3' and 'programme 4'.
         </p>
         <p class="py-6">
           Firstly the matcher will remove any duplicate picks from the students. If they have any supervisor as
@@ -25,16 +25,18 @@
           preferences, we leave them for later and assign after the initial matching.
         </p>
         <p class="py-6">
-          The matching algorithm from Roth 1984 requires 2 sided preferences to establish a stable matching. For us we
-          only have preferences on the student side. We use the optional 'rank' column from the students as a proxy for
-          this. If no rank column is available then we randomly order the students. We then use this rank order as the
-          preference for all supervisors. That means the highest ranked student is more likely to receive their first
-          choice. Note that this means if no 'rank' column is uploaded, the allocation will be different every time it
-          is run because of the random element.
+          The matching algorithm from Roth 1984 requires 2 sided preferences to establish a stable matching. For our
+          case, we only have preferences on the student side. We use the optional 'rank' column from the students as a
+          proxy for this. If no rank column is available then we randomly order the students. We then use this rank
+          order as the preference for all supervisors. That means the highest ranked student is more likely to receive
+          their first choice. Note that this means if no 'rank' column is uploaded, the allocation will be different
+          every time it is run because of the random element.
         </p>
         <p class="py-6">
-          After this we run the matching algorithm. If there are any students who did not submit preferences, we now
-          allocate them to the supervisor with the fewest students assigned who can supervise for their degree programme.
+          If the uploaded student data contains an 'allocation' column, these are fixed allocations for e.g. resit
+          students who should have the same supervisor they did last year. After this we run the matching algorithm.
+          If there are any students who did not submit preferences, we now allocate them to the supervisor with the
+          fewest students assigned who can supervise for their degree programme.
         </p>
         <p class="py-6">
           The matching algorithm is run entirely in your browser. No data is sent to the server, this is a completely

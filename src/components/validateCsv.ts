@@ -16,6 +16,7 @@ export const studentPrefSchema = {
         'second choice': {type: 'string'},
         'third choice': {type: 'string'},
         'fourth choice': {type: 'string'},
+        allocation: { type: 'string' }
     }
 };
 

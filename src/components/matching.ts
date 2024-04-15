@@ -53,7 +53,8 @@ export function solveStudentOptimal(students: Student[], supervisors: Supervisor
         return students.find((s: Student) => s.id == id)
     }
 
-    const freeStudents = [...students];
+    const freeStudents = [...students]
+        .filter(s => !s.allocation);
 
     let student;
     while (student = freeStudents.pop()) {

@@ -155,7 +155,8 @@ function shuffle(array: any[]) {
 }
 
 function allocateRemaining(students: StudentRow[], supervisors: SupervisorRow[]) {
-    const unallocated = students.filter(s => isEmpty(s.allocation));
+    console.log(students)
+    const unallocated = students.filter(s => isEmpty(s.allocation) || s.allocation === "");
     const withoutPref = unallocated.filter(s => s["first choice"] === "");
     emitter.$emit("progress", `Allocating ${unallocated.length} remaining students, ${withoutPref.length} of which did not set preferences`)
 

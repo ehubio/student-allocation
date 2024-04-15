@@ -49,7 +49,8 @@ onMounted(() => {
   })
 
   emitter.$on("clear", () => {
-    logMessages.value = []
+    logMessages.value = [];
+    logVisible.value = false;
   })
 })
 
