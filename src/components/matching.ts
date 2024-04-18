@@ -43,8 +43,11 @@ function getSuccessors(supervisor: Supervisor): string[] {
  * @param supervisors - Array of supervisors and preferences
  * @returns List of students with their allocation
  */
-export function solveStudentOptimal(students: Student[], supervisors: Supervisor[]) {
-    emitter.$emit("progress", "Running matching algorithm")
+export function solveStudentOptimal(students: Student[], supervisors: Supervisor[], quiet: boolean) {
+    if (!quiet) {
+        emitter.$emit("progress", "Running matching algorithm")
+    }
+
     function findSupervisorById(id: string): Supervisor | undefined {
         return supervisors.find((s: Supervisor) => s.id == id)
     }

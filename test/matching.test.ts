@@ -58,7 +58,7 @@ test('matching algorithm super simple', () => {
 
     const [students, supervisors] = createFromDict(studentPrefs, supervisorPrefs, supervisorCapacity)
 
-    solveStudentOptimal(students, supervisors)
+    solveStudentOptimal(students, supervisors, true)
     expect(getAllocation(students, "A")).toBe("X")
     expect(getAllocation(students, "B")).toBe("Y")
     expect(getStudents(supervisors, "X")).toStrictEqual(["A"])
@@ -88,7 +88,7 @@ test('matching algorithm on example', () => {
 
     const [students, supervisors] = createFromDict(studentPrefs, supervisorPrefs, supervisorCapacity)
 
-    solveStudentOptimal(students, supervisors)
+    solveStudentOptimal(students, supervisors, true)
 
     expect(getAllocation(students, "A")).toBe("C")
     expect(getAllocation(students, "S")).toBe("M")
@@ -124,7 +124,7 @@ test('matching algorithm on example2', () => {
 
     const [students, supervisors] = createFromDict(studentPrefs, supervisorPrefs, supervisorCapacity)
 
-    solveStudentOptimal(students, supervisors)
+    solveStudentOptimal(students, supervisors, true)
 
     expect(getStudents(supervisors, "Fairness in AI")).toStrictEqual([])
     expect(getStudents(supervisors, "Intellectual property")).toStrictEqual(["Group 1"])
@@ -151,7 +151,7 @@ test('student loses all preferences', () => {
 
     const [students, supervisors] = createFromDict(studentPrefs, supervisorPrefs, supervisorCapacity)
 
-    solveStudentOptimal(students, supervisors)
+    solveStudentOptimal(students, supervisors, true)
 
     expect(getStudents(supervisors, "X")).toStrictEqual(["B"])
     expect(getStudents(supervisors, "Y")).toStrictEqual([])
@@ -175,7 +175,7 @@ test('student without preference is ignored', () => {
 
     const [students, supervisors] = createFromDict(studentPrefs, supervisorPrefs, supervisorCapacity)
 
-    solveStudentOptimal(students, supervisors)
+    solveStudentOptimal(students, supervisors, true)
     expect(getStudents(supervisors, "X")).toStrictEqual(["A"])
     expect(getStudents(supervisors, "Y")).toStrictEqual([])
 
@@ -200,7 +200,7 @@ test('student prefs used if no supervisor pref set', () => {
 
     const [students, supervisors] = createFromDict(studentPrefs, supervisorPrefs, supervisorCapacity)
 
-    solveStudentOptimal(students, supervisors)
+    solveStudentOptimal(students, supervisors, true)
     expect(getStudents(supervisors, "X")).toStrictEqual(["A"])
     expect(getStudents(supervisors, "Y")).toStrictEqual([])
 })
@@ -224,7 +224,7 @@ test('student prefs taken into account if present', () => {
 
     const [students, supervisors] = createFromDict(studentPrefs, supervisorPrefs, supervisorCapacity)
 
-    solveStudentOptimal(students, supervisors)
+    solveStudentOptimal(students, supervisors, true)
     expect(getStudents(supervisors, "X")).toStrictEqual(["A"])
     expect(getStudents(supervisors, "Y")).toStrictEqual(["B"])
 })
@@ -249,7 +249,7 @@ test('large data test runs', () => {
 
     const [students, supervisors] = createFromDict(studentPrefs, supervisorPrefs, supervisorCapacity)
 
-    solveStudentOptimal(students, supervisors)
+    solveStudentOptimal(students, supervisors, true)
 
     expect(getStudents(supervisors, "0")).toStrictEqual(["0"])
     expect(getStudents(supervisors, "3")).toStrictEqual([])

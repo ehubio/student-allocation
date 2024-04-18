@@ -33,7 +33,7 @@ test('can set supervisor preferences from ranks', () => {
         }
     ]
 
-    setSupervisorPreferences(testStudents, testSupervisor)
+    setSupervisorPreferences(testStudents, testSupervisor, true)
 
     expect(testSupervisor[0].preference).toStrictEqual(["B", "A"])
 })
@@ -69,7 +69,7 @@ test('can set supervisor preferences randomly', () => {
         }
     ]
 
-    setSupervisorPreferences(testStudents, testSupervisor)
+    setSupervisorPreferences(testStudents, testSupervisor, true)
 
     // We can't set seed for Math.random so who knows what order we will get
     expect(testSupervisor[0].preference).toHaveLength(2)
@@ -111,7 +111,7 @@ test('can set supervisor preferences with mix of random and ranked', () => {
         }
     ]
 
-    setSupervisorPreferences(testStudents, testSupervisor)
+    setSupervisorPreferences(testStudents, testSupervisor, true)
 
     // We can't set seed for Math.random so who knows what order we will get
     expect(testSupervisor[0].preference).toHaveLength(3)
@@ -282,7 +282,7 @@ test('can randomly add missing preferences from same programme', () => {
         }
     ]
 
-    randomiseMissingPreferences(testStudents, testSupervisors)
+    randomiseMissingPreferences(testStudents, testSupervisors, true)
     expect(testStudents[0].preference).toStrictEqual(["X", "Y", "Z", "M"])
     expect(testStudents[1].preference.sort()).toStrictEqual(["X", "Y", "Z", "M"].sort())
     expect(testStudents[2].preference).toStrictEqual([])

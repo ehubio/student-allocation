@@ -49,7 +49,7 @@
       <Progress :showComponent="allocationResult?.success"/>
       <ResultDownload class="mt-5"
                       v-if="allocationResult?.success"
-                      :student-data="allocatedStudentData"/>
+                      :student-data="allocationResult.students"/>
     </div>
   </div>
 </template>

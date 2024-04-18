@@ -6,6 +6,8 @@ import {formatStrings, groupBy, isEmpty, notEmpty} from "./utils.ts";
 export interface Result {
     success: boolean
     errors: string[]
+    students?: StudentRow[]
+    supervisors?: SupervisorRow[]
 }
 
 export function runAllocation(students: StudentRow[], supervisors: SupervisorRow[]): Result {
@@ -15,15 +17,54 @@ export function runAllocation(students: StudentRow[], supervisors: SupervisorRow
         return res
     }
     removeDuplicatePicks(students);
-    randomiseMissingPreferences(students, supervisors);
-    // remove resit students
-    setSupervisorPreferences(students, supervisors);
-    solveStudentOptimal(students, supervisors);
-    emitter.$emit("progress", "Completed matching algorithm", "bg-success");
-    allocateRemaining(students, supervisors);
-    emitter.$emit("progress", "Completed allocating remaining students", "bg-success")
-    summariseResults(students, supervisors);
+
+    // In this case we are using randomised ranks for the students, and so any matching won't be stable
+    // therefore there is a chance some are better than others, in this case we want to run the matching
+    // a few times to get an optimal result.
+    const missingRank = students.map((s: StudentRow) => s.rank)
+        .filter(isEmpty)
+    if (missingRank.length > 0) {
+        const allRuns = [...Array(100)].map((_) => {
+            const studentsCopy = nestedCopy(students);
+            const supervisorsCopy = nestedCopy(supervisors);
+            allocateOnce(studentsCopy, supervisorsCopy, true)
+            return {
+                students: studentsCopy,
+                supervisors: supervisorsCopy
+            }
+        });
+        let minScore = Infinity;
+        let bestResult = allRuns[0];
+        for (const thisResult of allRuns) {
+            const thisScore = scoreResult(thisResult.students);
+            if (thisScore < minScore) {
+                minScore = thisScore;
+                bestResult = thisResult;
+            }
+        }
+        res.students = bestResult.students;
+        res.supervisors = bestResult.supervisors;
+    } else {
+        allocateOnce(students, supervisors, false)
+        res.students = students;
+        res.supervisors = supervisors;
+    }
+
+    emitter.$emit("progress", "Completed allocating students", "bg-success");
+    summariseResults(res.students, res.supervisors);
     return res;
+}
+
+function nestedCopy<Type>(array: Type[]): Type[] {
+    return JSON.parse(JSON.stringify(array));
+}
+
+function allocateOnce(students: StudentRow[], supervisors: SupervisorRow[], quiet: boolean) {
+    randomiseMissingPreferences(students, supervisors, quiet);
+    // remove resit students
+    setSupervisorPreferences(students, supervisors, quiet);
+    solveStudentOptimal(students, supervisors, quiet);
+    allocateRemaining(students, supervisors, quiet);
 }
 
 export function validateStudentSupervisors(students: StudentRow[], supervisors: SupervisorRow[]): Result {
@@ -85,7 +126,7 @@ function countOccurrences(arr: string[], str: string): number {
 // This gives them an unfair advantage. If they've not entered the required amount (4) then we assign remaining
 // preferences randomly. Unless they have no preference, then we leave this to allocate afterwards.
 // So that students who did submit preferences are favored.
-export function randomiseMissingPreferences(students: StudentRow[], supervisors: SupervisorRow[]) {
+export function randomiseMissingPreferences(students: StudentRow[], supervisors: SupervisorRow[], quiet: boolean) {
     const supervisorsByProgramme = groupBy(supervisors, "programmes")
     students.forEach(student => {
         const preferencesToSet = 4 - student.preference.length
@@ -93,9 +134,11 @@ export function randomiseMissingPreferences(students: StudentRow[], supervisors:
             const programmeSupervisors: SupervisorRow[] = supervisorsByProgramme[student.programme].
                 filter((s: SupervisorRow) => !student.preference.includes(s.id));
             const toAssign =  getRandomSupervisors(preferencesToSet, programmeSupervisors)
-            emitter.$emit("progress",
-                `Student '${student.id}' entered ${student.preference.length} preferences. ` +
-                `Randomly adding supervisors ${formatStrings(toAssign)} as additional preferences.`)
+            if (!quiet) {
+                emitter.$emit("progress",
+                    `Student '${student.id}' entered ${student.preference.length} preferences. ` +
+                    `Randomly adding supervisors ${formatStrings(toAssign)} as additional preferences.`)
+            }
             student.preference.push(...toAssign);
         }
     })
@@ -122,12 +165,14 @@ function randomNoRepeats(array: string[]) {
     }
 }
 
-export function setSupervisorPreferences(students: StudentRow[], supervisors: SupervisorRow[]) {
+export function setSupervisorPreferences(students: StudentRow[], supervisors: SupervisorRow[], quiet: boolean) {
     const studentRanks = students.map((s: StudentRow) => s.rank)
         .filter(notEmpty)
 
     if (studentRanks.length != students.length) {
-        emitter.$emit("progress", "Randomising rank for any unranked students")
+        if (!quiet) {
+            emitter.$emit("progress", "Randomising rank for any unranked students")
+        }
         const maxRank = studentRanks.length > 0 ? Math.max(...studentRanks) : 0;
         const missingRank = students.filter((s: StudentRow) => s.rank === undefined)
         const ranks = Array.from({length: missingRank.length}, (_v, k) => k + maxRank + 1);
@@ -154,11 +199,13 @@ function shuffle(array: any[]) {
     return array;
 }
 
-function allocateRemaining(students: StudentRow[], supervisors: SupervisorRow[]) {
-    console.log(students)
+function allocateRemaining(students: StudentRow[], supervisors: SupervisorRow[], quiet: boolean) {
     const unallocated = students.filter(s => isEmpty(s.allocation) || s.allocation === "");
     const withoutPref = unallocated.filter(s => s["first choice"] === "");
-    emitter.$emit("progress", `Allocating ${unallocated.length} remaining students, ${withoutPref.length} of which did not set preferences`)
+
+    if (!quiet) {
+        emitter.$emit("progress", `Allocating ${unallocated.length} remaining students, ${withoutPref.length} of which did not set preferences`);
+    }
 
     const remainingCapacity = supervisors.filter(s => s.capacity > s.students.length);
     const unallocatedByProgramme = groupBy(unallocated, "programme");
@@ -166,7 +213,9 @@ function allocateRemaining(students: StudentRow[], supervisors: SupervisorRow[])
     for (const programme in unallocatedByProgramme) {
         if (isEmpty(remainingSupervisorsByProgramme[programme]) ||
             remainingSupervisorsByProgramme[programme].length == 0) {
-            emitter.$on("progress", `No supervisors left for programme ${programme}`);
+            if (!quiet) {
+                emitter.$on("progress", `No supervisors left for programme ${programme}`);
+            }
             continue
         }
         allocateRemainingByProgramme(unallocatedByProgramme[programme], remainingSupervisorsByProgramme[programme]);
@@ -197,6 +246,17 @@ export function summariseResults(students: StudentRow[], supervisors: Supervisor
         emitter.$emit("progress", `${s.id} has ${s.students.length}/${s.capacity} students allocated`)
     })
     // Print for the students, how many got first choice, second, third etc.
+    const choicesCount = countChoices(students);
+    choicesCount.forEach((n: number, i: number) => {
+        if (i != 4) {
+            emitter.$emit("progress", `Choice ${i + 1}: ${n} students`)
+        } else {
+            emitter.$emit("progress", `None of submitted choices: ${n} students`)
+        }
+    })
+}
+
+function countChoices(students: StudentRow[]) {
     const choicesCount = [0, 0, 0, 0, 0];
     students.forEach(student => {
         if (student["first choice"]) {
@@ -213,11 +273,12 @@ export function summariseResults(students: StudentRow[], supervisors: Supervisor
             }
         }
     })
-    choicesCount.forEach((n: number, i: number) => {
-        if (i != 4) {
-            emitter.$emit("progress", `Choice ${i + 1}: ${n} students`)
-        } else {
-            emitter.$emit("progress", `None of submitted choices: ${n} students`)
-        }
-    })
+    return choicesCount
+}
+
+function scoreResult(students: StudentRow[]) {
+    const choicesCount = countChoices(students);
+    return choicesCount.reduce((score, count, index) => {
+        return score + (count * index + 1)
+    }, 0)
 }
