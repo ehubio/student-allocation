@@ -1,5 +1,5 @@
 import {expect, test} from "vitest";
-import {formatStrings} from "../src/components/utils.ts";
+import {formatStrings} from "../src/components/common/utils.ts";
 
 test('can format strings for errors', () => {
     const arrayOfStrings = ['a', 'b', 'c'];

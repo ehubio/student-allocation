@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
-import {solveStudentOptimal} from "../src/components/matching.ts";
+import {solveStudentOptimal} from "../src/components/student-supervisor/matching.ts";
 import testdata from "./testdata/matching_test.json"
-import type {Student, Supervisor} from "../src/components/types.ts";
+import type {Student, Supervisor} from "../src/components/student-supervisor/types.ts";
 
 const createFromDict = (studentPrefs: Map<string, string[]>,
                         supervisorPrefs: Map<string, string[]>,

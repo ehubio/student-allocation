@@ -1,6 +1,6 @@
-import emitter from "./eventBus.ts"
+import emitter from "../common/eventBus.ts"
 import type {Student, Supervisor} from "./types.ts";
-import {notEmpty} from "./utils.ts";
+import {notEmpty} from "../common/utils.ts";
 
 function getWorstMatch(supervisor: Supervisor): string | undefined {
     if (supervisor.students.length === 0) {

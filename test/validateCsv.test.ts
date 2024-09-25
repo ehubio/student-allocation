@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import * as Papa from 'papaparse'
-import type {StudentRow, SupervisorRow} from "../src/components/types.ts";
-import {studentPrefSchema, supervisorCapacitySchema, validateData} from "../src/components/validateCsv.ts";
+import type {StudentRow, SupervisorRow} from "../src/components/student-supervisor/types.ts";
+import {studentPrefSchema, supervisorCapacitySchema, validateData} from "../src/components/common/validateCsv.ts";
 import student from "./testdata/student.csv?raw"
 import studentWithRank from "./testdata/student_with_rank.csv?raw"
 import supervisor from "./testdata/supervisor.csv?raw"

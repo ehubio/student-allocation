@@ -7,7 +7,7 @@
         </h1>
       </div>
       <div class="flex-none">
-        <a class="btn btn-ghost btn-circle" href="/student-allocation/methods/">
+        <a class="btn btn-ghost btn-circle" href="/student-allocation/student-supervisor/about">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="dimgray">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -49,42 +49,46 @@
       <Progress :showComponent="allocationResult?.success"/>
       <ResultDownload class="mt-5"
                       v-if="allocationResult?.success"
-                      :student-data="allocationResult.students"/>
+                      :csv-data="downloadData"/>
     </div>
   </div>
 </template>
 
 <script setup lang='ts'>
-import FileUpload from './FileUpload.vue';
+import FileUpload from '../common/FileUpload.vue';
 import {
   supervisorCapacitySchema,
   studentPrefSchema
-} from './validateCsv.ts';
+} from '../common/validateCsv.ts';
 import {ref, toRaw, watch} from "vue";
 import {type Result, runAllocation} from "./runAllocation.ts";
-import Progress from "./Progress.vue";
+import Progress from "../common/Progress.vue";
 import type {StudentRow, SupervisorRow} from "./types.ts";
 import ResultDownload from "./ResultDownload.vue";
-import emitter from "./eventBus.ts";
-import Methods from "./MethodsText.vue";
+import emitter from "../common/eventBus.ts";
+import {studentToCsvString} from "./dataToCsv.ts";
 
 const supervisorData = ref<SupervisorRow[]>([]);
 const studentData = ref<StudentRow[]>([]);
 const allocatedSupervisorData = ref<SupervisorRow[]>([]);
 const allocatedStudentData = ref<StudentRow[]>([]);
+const downloadData = ref<string>();
 
 const allocationResult = ref<Result | null>(null);
 
 const allocate = () => {
-  emitter.$emit("clear");
-  // Copy the data as we don't want to modify original in-case someone re-runs it
-  allocatedStudentData.value = structuredClone(toRaw(studentData.value))
-  allocatedSupervisorData.value = structuredClone(toRaw(supervisorData.value))
-  allocationResult.value = runAllocation(allocatedStudentData.value, allocatedSupervisorData.value)
+    emitter.$emit("clear");
+    // Copy the data as we don't want to modify original in-case someone re-runs it
+    allocatedStudentData.value = structuredClone(toRaw(studentData.value))
+    allocatedSupervisorData.value = structuredClone(toRaw(supervisorData.value))
+    allocationResult.value = runAllocation(allocatedStudentData.value, allocatedSupervisorData.value)
+    if (allocationResult.value.success && allocationResult.value.students) {
+         downloadData.value = studentToCsvString(allocationResult.value.students)
+    }
 }
 
 watch([studentData, supervisorData], () => {
-  allocationResult.value = null;
+    allocationResult.value = null;
 })
 
 </script>

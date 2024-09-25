@@ -1,11 +1,11 @@
 import { expect, test } from 'vitest';
-import type {StudentRow, SupervisorRow} from "../src/components/types.ts";
+import type {StudentRow, SupervisorRow} from "../src/components/student-supervisor/types.ts";
 import {
     randomiseMissingPreferences,
     removeDuplicatePicks,
     setSupervisorPreferences,
     validateStudentSupervisors
-} from "../src/components/runAllocation.ts";
+} from "../src/components/student-supervisor/runAllocation.ts";
 
 test('can set supervisor preferences from ranks', () => {
     const testStudents: StudentRow[] = [

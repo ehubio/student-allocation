@@ -1,7 +1,7 @@
 import type {StudentRow, SupervisorRow} from "./types.ts";
-import emitter from "./eventBus.ts"
+import emitter from "../common/eventBus.ts"
 import {matchPair, solveStudentOptimal} from "./matching.ts";
-import {formatStrings, groupBy, isEmpty, notEmpty} from "./utils.ts";
+import {formatStrings, groupBy, isEmpty, notEmpty} from "../common/utils.ts";
 
 export interface Result {
     success: boolean

@@ -1,0 +1,31 @@
+---
+// Component Imports
+import Abt from '../../components/presentation-marking/About.vue';
+
+// Full Astro Component Syntax:
+// https://docs.astro.build/basics/astro-components/
+---
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" type="image/png" href={import.meta.env.BASE_URL + "/favicon.png"} />
+    <style>
+        html,
+        body {
+            font-family: system-ui;
+            margin: 0;
+        }
+        body {
+            padding: 1rem;
+        }
+    </style>
+</head>
+<body class="font-mono md:container md:mx-auto">
+<main>
+    <Abt/>
+</main>
+</body>
+</html>

@@ -2,7 +2,8 @@ import Ajv from 'ajv';
 import type { ValidateFunction } from 'ajv';
 import {betterAjvErrors} from '@apideck/better-ajv-errors';
 import type { ValidationError } from '@apideck/better-ajv-errors';
-import type {StudentRow, SupervisorRow} from "./types.ts";
+import type {StudentRow, SupervisorRow} from "../student-supervisor/types.ts";
+import type {Marker, Student} from "../presentation-marking/markerAllocation.ts";
 
 export const studentPrefSchema = {
     type: 'object',
@@ -32,9 +33,32 @@ export const supervisorCapacitySchema = {
         'programme 3': {type: 'string'},
         'programme 4': {type: 'string'},
     }
-}
+};
 
-export type InputData = StudentRow[] | SupervisorRow[]
+export const studentPresentationSchema = {
+    type: 'object',
+    required: ['id', 'expertise', 'supervisor'],
+    additionalProperties: true,
+    properties: {
+        id: { type: 'string' },
+        expertise: { type: 'string' },
+        supervisor: { type: 'string' }
+    }
+};
+
+export const markerSchema = {
+    type: 'object',
+    required: ['id', 'expertise', 'phd students', 'academic'],
+    additionalProperties: true,
+    properties: {
+        id: { type: 'string' },
+        expertise: { type: 'string' },
+        "phd students": { type: 'string' },
+        academic: { type: 'boolean' },
+    }
+};
+
+export type InputData = StudentRow[] | SupervisorRow[] | Student[] | Marker[]
 
 /**
  * Validates an array of objects against a JSON schema.
@@ -53,7 +77,7 @@ export function validateData<T extends { [key: string]: any }>(data: InputData, 
     const preferenceKeys = ['first choice', 'second choice', 'third choice', 'fourth choice']
     const programmeKeys = ['programme 1', 'programme 2', 'programme 3', 'programme 4']
 
-    data.forEach((obj: StudentRow | SupervisorRow) => {
+    data.forEach((obj: StudentRow | SupervisorRow | Student | Marker) => {
         if ("rank" in obj) {
             obj.rank = parseInt(obj.rank)
         } else {
@@ -61,6 +85,9 @@ export function validateData<T extends { [key: string]: any }>(data: InputData, 
         }
         if ("capacity" in obj) {
             obj.capacity = parseInt(obj.capacity)
+        }
+        if ("academic" in obj) {
+            obj.academic = toBoolean(obj.academic)
         }
         const valid = validate(obj);
         if (valid) {
@@ -86,6 +113,16 @@ export function validateData<T extends { [key: string]: any }>(data: InputData, 
             }
             parsedObj.programmes = programmes;
 
+            // Parse phd students into an array
+            if ("phd students" in obj) {
+                parsedObj.phdStudents = obj["phd students"].split(";")
+            }
+
+            // Parse expertise into an array
+            if ("expertise" in obj) {
+                parsedObj.expertise = obj.expertise.split(";")
+            }
+
             parsedData.push(parsedObj as T);
         } else {
             const betterError = betterAjvErrors({ schema, data, errors: validate.errors });
@@ -108,3 +145,15 @@ const removeDuplicates = (errors: ValidationError[]) => {
 
     return Array.from(uniqueErrors.values());
 };
+
+function toBoolean(value: string) {
+    switch(value) {
+        case "true":
+        case "1":
+        case "on":
+        case "yes":
+            return true;
+        default:
+            return false;
+    }
+}

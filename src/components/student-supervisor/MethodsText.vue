@@ -42,7 +42,7 @@
           The matching algorithm is run entirely in your browser. No data is sent to the server, this is a completely
           static site. Non-anonymised data can be uploaded and used without worry.
         </p>
-        <a class="btn btn-primary" href="/student-allocation/">
+        <a class="btn btn-primary" href="/student-allocation/student-supervisor">
           Get Started
         </a>
       </div>
