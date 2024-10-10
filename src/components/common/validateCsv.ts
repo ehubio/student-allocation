@@ -115,12 +115,12 @@ export function validateData<T extends { [key: string]: any }>(data: InputData, 
 
             // Parse phd students into an array
             if ("phd students" in obj) {
-                parsedObj.phdStudents = obj["phd students"].split(";")
+                parsedObj.phdStudents = obj["phd students"].split(";").map((s: string) => s.trim())
             }
 
             // Parse expertise into an array
             if ("expertise" in obj) {
-                parsedObj.expertise = obj.expertise.split(";")
+                parsedObj.expertise = obj.expertise.split(";").map((s: string) => s.trim())
             }
 
             parsedData.push(parsedObj as T);

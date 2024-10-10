@@ -1,5 +1,6 @@
 import {sample, shuffle} from 'lodash-es';
 import emitter from "../common/eventBus.ts";
+import * as Papa from "papaparse";
 
 export type Student = {
     id: string;
@@ -39,11 +40,12 @@ export type Scores = {
     roomSize: number
 };
 
+// -ve scores to penalise, +ve for reward
 const scores: Scores = {
     supervisorMarkingStudent: -100,
-    sameSupervisor: -20,
-    subjectAreaMatch: 5,
-    roomSize: 2
+    sameSupervisor: -50,
+    subjectAreaMatch: 10,
+    roomSize: 50
 };
 
 export const allocateRooms = (markers: Marker[], students: Student[], noOfRooms: number): Result => {
@@ -58,7 +60,7 @@ export const allocateRooms = (markers: Marker[], students: Student[], noOfRooms:
     }
     const initialAllocation = setInitialSolution(markers, students, noOfRooms);
     const opts: AnnealingOptions = {
-        initialTemp: 1000,
+        initialTemp: 10000,
         alpha: 0.98,
         minTemp: 1
     };
@@ -174,37 +176,10 @@ const setInitialSolution = (markers: Marker[], students: Student[], noOfRooms: n
         }
     }
 
-    // Allocate students
-    const supervisorCounts = new Map<string, number>();
-    currentRoom = 0;
-
-    for (const student of shuffledStudents) {
-        let allocated = false;
-        let attempts = 0;
-
-        while (!allocated && attempts < noOfRooms) {
-            const room = rooms[currentRoom];
-            const supervisorCount = supervisorCounts.get(student.supervisor) || 0;
-
-            if (room.students.length < studentsPerRoom + 1 && supervisorCount === 0) {
-                room.students.push(student);
-                supervisorCounts.set(student.supervisor, supervisorCount + 1);
-                allocated = true;
-            }
-
-            currentRoom = (currentRoom + 1) % noOfRooms;
-            attempts++;
-        }
-
-        if (!allocated) {
-            // If we couldn't allocate a student, just put them in the next available room
-            rooms[currentRoom].students.push(student);
-        }
-
-        // Reset supervisor counts after each full cycle
-        if (currentRoom === 0) {
-            supervisorCounts.clear();
-        }
+    // Initially distribute students in a round-robin manner
+    for (let i = 0; i < shuffledStudents.length; i++) {
+        const roomIndex = i % noOfRooms;
+        rooms[roomIndex].students.push(shuffledStudents[i]);
     }
 
     return { rooms, studentsPerRoom };
@@ -236,18 +211,20 @@ const shuffleSolution = (roomAllocation: RoomAllocation): RoomAllocation => {
             attempt += 1;
         }
     } else {
-        let canMove = false;
+        let canSwap = false;
         let attempt = 0;
-        while (!canMove && attempt < 100) {
+        while (!canSwap && attempt < 100) {
             const roomIndices = getTwoRandomIndices(newRooms.length);
             const room1 = newRooms[roomIndices[0]];
             const room2 = newRooms[roomIndices[1]];
 
-            if (room1.students.length > 0) {
-                const student = sample(room1.students)!;
-                canMove = canMoveStudent(room1, room2, student, studentsPerRoom);
-                if (canMoveStudent(room1, room2, student, studentsPerRoom)) {
-                    moveStudent(room1, room2, student);
+            const student1 = sample(room1.students);
+            const student2 = sample(room2.students);
+
+            if (student1 && student2) {
+                canSwap = canSwapStudents(room1, room2, student1, student2);
+                if (canSwap) {
+                    swapStudents(room1, room2, student1, student2);
                 }
             }
             attempt += 1;
@@ -281,9 +258,24 @@ const canSwapMarkers = (room1: Room, room2: Room, marker1: Marker, marker2: Mark
     return !wouldViolateAcademicConstraint && !wouldViolatePhdConstraint && !wouldViolateNotMarkingStudentConstraint;
 };
 
+const canSwapStudents = (room1: Room, room2: Room, student1: Student, student2: Student): boolean => {
+
+    const room1Markers = room1.markers.map(s => s.id);
+    const room2Markers = room2.markers.map(s => s.id);
+    const wouldViolateNotMarkingStudentConstraint =
+        room1Markers.includes(student2.supervisor) || room2Markers.includes(student1.supervisor);
+
+    return !wouldViolateNotMarkingStudentConstraint;
+};
+
 const swapMarkers = (room1: Room, room2: Room, marker1: Marker, marker2: Marker) => {
     room1.markers = room1.markers.filter(m => m !== marker1).concat(marker2);
     room2.markers = room2.markers.filter(m => m !== marker2).concat(marker1);
+};
+
+const swapStudents = (room1: Room, room2: Room, student1: Student, student2: Student) => {
+    room1.students = room1.students.filter(m => m !== student1).concat(student2);
+    room2.students = room2.students.filter(m => m !== student2).concat(student1);
 };
 
 const canMoveStudent = (fromRoom: Room, toRoom: Room, student: Student, studentsPerRoom: number): boolean => {
@@ -417,3 +409,83 @@ export const summariseRoomAllocation = (allocation: RoomAllocation) => {
     emitter.$emit("progress", `  - Students whose expertise is covered by at least one marker: ${Number(totalExpertiseCoveredByOne*100/totalStudents).toFixed(2)}%`);
     emitter.$emit("progress", `  - Students whose expertise is covered by both markers: ${Number(totalExpertiseCoveredByBoth*100/totalStudents).toFixed(2)}%`);
 };
+
+
+export const scoreLastYear = (fileContent: any, markers: Marker[], students: Student[]) => {
+    Papa.parse(fileContent, {
+        header: true,
+        skipEmptyLines: true,
+        transform: function (val: string) {
+            return val.trim();
+        },
+        transformHeader: function (val: string) {
+            return val.trim();
+        },
+        complete: function (results: any) {
+            doScoreLastYear(results.data, markers, students);
+        }
+    });
+};
+
+const doScoreLastYear = (data: any, markers: Marker[], students: Student[]) => {
+    const allocation = buildRoomAllocation(data, markers, students);
+    console.log("last year score is ", scoreRoomAllocation(allocation));
+}
+
+function findMarkerByName(markers: Marker[], name: string): Marker | null {
+    const marker = markers.find(m => m.id === name);
+    if (!marker) {
+        console.log(`Marker not found: ${name}`);
+    }
+    return marker || null;
+}
+
+// Helper function to find a student by name (ID)
+function findStudentByName(students: Student[], name: string): Student | null {
+    const student = students.find(s => s.id === name);
+    if (!student) {
+        console.log(`Student not found: ${name}`);
+    }
+    return student || null;
+}
+
+export function buildRoomAllocation(data: any[], markers: Marker[], students: Student[]): RoomAllocation {
+    const rooms: Room[] = [];
+    const studentsPerRoom = data.length > 0 ? Object.keys(data[0]).length : 0; // Number of rooms per row
+
+    // Iterate over the room data
+    for (let roomIndex = 0; roomIndex < studentsPerRoom; roomIndex++) {
+        const room: Room = { students: [], markers: [] };
+
+        // 1. Process Markers (from first two rows of data)
+        for (let i = 0; i < 2; i++) { // The first two rows are markers
+            const markerName = data[i][`Room ${roomIndex + 1}`]; // Example: "Room 1", "Room 2", etc.
+            if (markerName) {
+                const marker = findMarkerByName(markers, markerName);
+                if (marker) {
+                    room.markers.push(marker);
+                }
+            }
+        }
+
+        // 2. Process Students (from the remaining rows of data)
+        for (let i = 2; i < data.length; i++) { // From row 3 onward, these are students
+            const studentName = data[i][`Room ${roomIndex + 1}`];
+            if (studentName) {
+                const student = findStudentByName(students, studentName);
+                if (student) {
+                    room.students.push(student);
+                }
+            }
+        }
+
+        // Add the room to the list of rooms
+        rooms.push(room);
+    }
+
+    // Return the RoomAllocation object
+    return {
+        rooms,
+        studentsPerRoom
+    };
+}

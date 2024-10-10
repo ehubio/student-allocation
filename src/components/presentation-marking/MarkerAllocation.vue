@@ -66,9 +66,9 @@ import {
 import {ref, watch} from "vue";
 import Progress from "../common/Progress.vue";
 import emitter from "../common/eventBus.ts";
-import {allocateRooms, type Marker, type Result, type Student} from "./markerAllocation.ts";
+import {allocateRooms, type Marker, type Result, scoreLastYear, type Student} from "./markerAllocation.ts";
 import NumericInput from "../common/NumericalInput.vue";
-import {markerAllocationToCsv, studentToCsvString} from "../student-supervisor/dataToCsv.ts";
+import {markerAllocationToCsv} from "../student-supervisor/dataToCsv.ts";
 import ResultDownload from "../student-supervisor/ResultDownload.vue";
 
 const markerData = ref<Marker[]>([]);
@@ -78,12 +78,18 @@ const noOfRooms = ref<number | null>(null);
 const allocationResult = ref<Result | null>(null);
 const downloadData = ref<string>()
 
-const allocate = () => {
+const allocate = async () => {
     emitter.$emit("clear");
     if (noOfRooms.value !== null) {
         allocationResult.value = allocateRooms(markerData.value, studentData.value, noOfRooms.value);
 
         if (allocationResult.value.success && allocationResult.value.allocation) {
+            // Uncomment to score last years result, will only work if uploaded the makrers and student
+            // input data from last year.
+            // const response = await fetch("/student-allocation/files/last_year.csv");
+            // const fileContent = await response.text();
+            // scoreLastYear(fileContent, markerData.value, studentData.value);
+            // console.log(JSON.stringify(allocationResult.value.allocation))
             downloadData.value = markerAllocationToCsv(allocationResult.value.allocation)
         }
     }
