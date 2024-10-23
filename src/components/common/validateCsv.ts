@@ -37,12 +37,13 @@ export const supervisorCapacitySchema = {
 
 export const studentPresentationSchema = {
     type: 'object',
-    required: ['id', 'expertise', 'supervisor'],
+    required: ['id', 'expertise', 'supervisor', 'marker avoid'],
     additionalProperties: true,
     properties: {
         id: { type: 'string' },
         expertise: { type: 'string' },
-        supervisor: { type: 'string' }
+        supervisor: { type: 'string' },
+        "marker avoid": { type: 'string' }
     }
 };
 
@@ -115,12 +116,19 @@ export function validateData<T extends { [key: string]: any }>(data: InputData, 
 
             // Parse phd students into an array
             if ("phd students" in obj) {
-                parsedObj.phdStudents = obj["phd students"].split(";").map((s: string) => s.trim())
+                parsedObj.phdStudents = obj["phd students"] ?
+                    obj["phd students"].split(";").map((s: string) => s.trim()) : [];
             }
 
             // Parse expertise into an array
             if ("expertise" in obj) {
-                parsedObj.expertise = obj.expertise.split(";").map((s: string) => s.trim())
+                parsedObj.expertise = obj.expertise.split(";").map((s: string) => s.trim());
+            }
+
+            // Parse marker avoid into an array
+            if ("marker avoid" in obj) {
+                parsedObj.markerAvoid = obj["marker avoid"] ?
+                    obj["marker avoid"].split(";").map((s: string) => s.trim()) : [];
             }
 
             parsedData.push(parsedObj as T);

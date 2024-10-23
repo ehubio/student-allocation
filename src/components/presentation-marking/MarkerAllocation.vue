@@ -34,6 +34,7 @@
                         v-if="studentData.length > 0 && markerData.length > 0 && noOfRooms !== null"
                         role="button"
                         @click="allocate">
+                    <span v-if="allocationRunning" class="loading loading-spinner"></span>
                     Run allocation
                 </button>
             </div>
@@ -63,10 +64,10 @@ import FileUpload from '../common/FileUpload.vue';
 import {
     markerSchema, studentPresentationSchema
 } from '../common/validateCsv.ts';
-import {ref, watch} from "vue";
+import {nextTick, ref, watch} from "vue";
 import Progress from "../common/Progress.vue";
 import emitter from "../common/eventBus.ts";
-import {allocateRooms, type Marker, type Result, scoreLastYear, type Student} from "./markerAllocation.ts";
+import {type Marker, type Result, scoreLastYear, type Student} from "./markerAllocation.ts";
 import NumericInput from "../common/NumericalInput.vue";
 import {markerAllocationToCsv} from "../student-supervisor/dataToCsv.ts";
 import ResultDownload from "../student-supervisor/ResultDownload.vue";
@@ -77,21 +78,56 @@ const noOfRooms = ref<number | null>(null);
 
 const allocationResult = ref<Result | null>(null);
 const downloadData = ref<string>()
+const allocationRunning = ref<boolean>(false);
 
 const allocate = async () => {
     emitter.$emit("clear");
+    allocationRunning.value = true;
+    await nextTick();
     if (noOfRooms.value !== null) {
-        allocationResult.value = allocateRooms(markerData.value, studentData.value, noOfRooms.value);
+        const worker = new Worker(new URL("./markerAllocationWorker.ts", import.meta.url), {type: "module"})
 
-        if (allocationResult.value.success && allocationResult.value.allocation) {
-            // Uncomment to score last years result, will only work if uploaded the makrers and student
-            // input data from last year.
-            // const response = await fetch("/student-allocation/files/last_year.csv");
-            // const fileContent = await response.text();
-            // scoreLastYear(fileContent, markerData.value, studentData.value);
-            // console.log(JSON.stringify(allocationResult.value.allocation))
-            downloadData.value = markerAllocationToCsv(allocationResult.value.allocation)
+        const cloneMarkers = JSON.parse(JSON.stringify(markerData.value));
+        const cloneStudents = JSON.parse(JSON.stringify(studentData.value));
+        try {
+            worker.postMessage({
+                markerData: cloneMarkers,
+                studentData: cloneStudents,
+                noOfRooms: noOfRooms.value,
+            });
+        } catch (error) {
+            console.error("Data serialization error:", error);
+            allocationRunning.value = false;
+            return; // Exit if there's a serialization issue
         }
+        // allocationResult.value = allocateRooms(markerData.value, studentData.value, noOfRooms.value);
+        worker.onmessage = (event) => {
+            const { type, message, data } = event.data;
+
+            if (type === 'progress') {
+                emitter.$emit("progress", message); // Emit the progress message
+            } else if (type === 'result') {
+                allocationResult.value = data;
+                allocationRunning.value = false;
+
+                if (allocationResult.value && allocationResult.value.success && allocationResult.value.allocation) {
+                    // Uncomment to score last years result, will only work if uploaded the markers and student
+                    // input data from last year.
+                    // fetch("/student-allocation/files/last_year.csv")
+                    //     .then(response => response.text())
+                    //     .then(fileContent => {
+                    //         scoreLastYear(fileContent, markerData.value, studentData.value);
+                    //     });
+                    downloadData.value = markerAllocationToCsv(allocationResult.value.allocation);
+                }
+            }
+        }
+
+        worker.onerror = (error) => {
+            console.error("Worker error:", error);
+            allocationRunning.value = false;
+            worker.terminate(); // Clean up the worker
+        };
     }
 }
 

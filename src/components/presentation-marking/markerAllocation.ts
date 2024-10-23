@@ -6,6 +6,7 @@ export type Student = {
     id: string;
     expertise: string[];
     supervisor: string,
+    markerAvoid: string[],
     [key: string]: any // Allow additional properties
 };
 
@@ -36,16 +37,18 @@ export interface Result {
 export type Scores = {
     supervisorMarkingStudent: number,
     sameSupervisor: number,
-    subjectAreaMatch: number,
+    subjectAreaMatchFirst: number,
+    subjectAreaMatchSecond: number,
     roomSize: number
 };
 
 // -ve scores to penalise, +ve for reward
 const scores: Scores = {
-    supervisorMarkingStudent: -100,
-    sameSupervisor: -50,
-    subjectAreaMatch: 10,
-    roomSize: 50
+    supervisorMarkingStudent: -10,
+    sameSupervisor: -20,
+    subjectAreaMatchFirst: 3,
+    subjectAreaMatchSecond: 1,
+    roomSize: 5
 };
 
 export const allocateRooms = (markers: Marker[], students: Student[], noOfRooms: number): Result => {
@@ -60,9 +63,10 @@ export const allocateRooms = (markers: Marker[], students: Student[], noOfRooms:
     }
     const initialAllocation = setInitialSolution(markers, students, noOfRooms);
     const opts: AnnealingOptions = {
-        initialTemp: 10000,
-        alpha: 0.98,
-        minTemp: 1
+        initialTemp: 1000,
+        alpha: 0.99,
+        minTemp: 1,
+        iterationsPerTemp: 100
     };
     const res = simulatedAnnealing(initialAllocation, scoreRoomAllocation, shuffleSolution, opts);
     summariseRoomAllocation(res);
@@ -97,7 +101,7 @@ export const validateInput = (markers: Marker[], students: Student[], noOfRooms:
     }, new Set<string>());
 
     emitter.$emit("progress", `Student expertises: ${Array.from(studentExpertises)}`)
-    emitter.$emit("progress", `Student expertises: ${Array.from(markerExpertises)}`)
+    emitter.$emit("progress", `Marker expertises: ${Array.from(markerExpertises)}`)
 
     studentExpertises.forEach(expertise => {
         if (!markerExpertises.has(expertise)) {
@@ -124,12 +128,19 @@ const scoreRoom = (room: Room, targetSize: number, sc: Scores): number => {
     }
 
     const markerIds = new Set(room.markers.map(marker => marker.id));
-    const markerExpertises = new Set(room.markers.flatMap(marker => marker.expertise));
     const supervisorCount = new Map<string, number>();
 
     room.students.forEach((student: Student) => {
-        if (markerExpertises.has(student.expertise[0])) {
-            roomTotal += sc.subjectAreaMatch;
+        const noMatchingExpertise = room.markers.reduce((count, marker) => {
+            if (marker.expertise.includes(student.expertise[0])) {
+                count += 1
+            }
+            return count
+        }, 0);
+        if (noMatchingExpertise == 1) {
+            roomTotal += sc.subjectAreaMatchFirst
+        } else if (noMatchingExpertise == 2) {
+            roomTotal += sc.subjectAreaMatchFirst + sc.subjectAreaMatchSecond
         }
         if (markerIds.has(student.supervisor)) {
             roomTotal += sc.supervisorMarkingStudent;
@@ -156,10 +167,8 @@ const setInitialSolution = (markers: Marker[], students: Student[], noOfRooms: n
     const shuffledStudents = shuffle(students);
 
     // Allocate academic markers first
-    console.log("shuffled markers", shuffledMarkers)
     const academicMarkers = shuffledMarkers.filter(m => m.academic);
     const nonAcademicMarkers = shuffledMarkers.filter(m => !m.academic);
-    console.log("nonAcademic", nonAcademicMarkers);
 
     for (let i = 0; i < rooms.length; i++) {
         if (academicMarkers.length > 0) {
@@ -255,7 +264,13 @@ const canSwapMarkers = (room1: Room, room2: Room, marker1: Marker, marker2: Mark
     const wouldViolateNotMarkingStudentConstraint =
         room1Supervisors.includes(marker2.id) || room2Supervisors.includes(marker1.id);
 
-    return !wouldViolateAcademicConstraint && !wouldViolatePhdConstraint && !wouldViolateNotMarkingStudentConstraint;
+    const room1MarkerAvoid = room1.students.flatMap(s => s.markerAvoid);
+    const room2MarkerAvoid = room2.students.flatMap(s => s.markerAvoid);
+    const wouldViolateMarkerAvoidConstraint =
+        room1MarkerAvoid.includes(marker2.id) || room2MarkerAvoid.includes(marker1.id)
+
+    return !wouldViolateAcademicConstraint && !wouldViolatePhdConstraint && !wouldViolateNotMarkingStudentConstraint
+        && !wouldViolateMarkerAvoidConstraint;
 };
 
 const canSwapStudents = (room1: Room, room2: Room, student1: Student, student2: Student): boolean => {
@@ -265,7 +280,11 @@ const canSwapStudents = (room1: Room, room2: Room, student1: Student, student2: 
     const wouldViolateNotMarkingStudentConstraint =
         room1Markers.includes(student2.supervisor) || room2Markers.includes(student1.supervisor);
 
-    return !wouldViolateNotMarkingStudentConstraint;
+    const wouldViolateMarkerAvoidConstraint =
+        student2.markerAvoid.some(m => room1Markers.includes(m)) ||
+        student1.markerAvoid.some(m => room2Markers.includes(m))
+
+    return !wouldViolateNotMarkingStudentConstraint && !wouldViolateMarkerAvoidConstraint;
 };
 
 const swapMarkers = (room1: Room, room2: Room, marker1: Marker, marker2: Marker) => {
@@ -298,7 +317,8 @@ const getTwoRandomIndices = (max: number): [number, number] => {
 type AnnealingOptions = {
     initialTemp: number,
     alpha: number, // cooling rate
-    minTemp: number
+    minTemp: number,
+    iterationsPerTemp: number
 }
 
 type EnergyFunc<T> = (state: T) => number;
@@ -310,28 +330,30 @@ const simulatedAnnealing = <T>(initialState: T, energyFunc: EnergyFunc<T>, propo
     let temperature = opts.initialTemp;
 
     while (temperature > opts.minTemp) {
-        // Generate a new neighboring state
-        const newState = proposeMove(currentState);
-        const newEnergy = energyFunc(newState);
+        for (let i = 0; i < opts.iterationsPerTemp; i++) {
+            // Generate a new neighboring state
+            const newState = proposeMove(currentState);
+            const newEnergy = energyFunc(newState);
 
-        emitter.$emit("progress", `Current allocation got score ${currentEnergy}`);
-        emitter.$emit("progress", `New allocation got score ${newEnergy}`);
+            // emitter.$emit("progress", `Current allocation got score ${currentEnergy}`);
+            // emitter.$emit("progress", `New allocation got score ${newEnergy}`);
 
-        // Calculate energy difference
-        const deltaEnergy = newEnergy - currentEnergy;
+            // Calculate energy difference
+            const deltaEnergy = newEnergy - currentEnergy;
 
-        // If new state is better, accept it
-        if (deltaEnergy < 0) {
-            emitter.$emit("progress", `New state is better, accepting it.`);
-            currentState = newState;
-            currentEnergy = newEnergy;
-        } else {
-            // If the new state is worse, accept it with some probability
-            const acceptanceProb = Math.exp(-deltaEnergy / temperature);
-            if (Math.random() < acceptanceProb) {
-                emitter.$emit("progress", `New state is worse, accepting it anyway.`);
+            // If new state is better, accept it
+            if (deltaEnergy < 0) {
+                // emitter.$emit("progress", `New state is better, accepting it.`);
                 currentState = newState;
                 currentEnergy = newEnergy;
+            } else {
+                // If the new state is worse, accept it with some probability
+                const acceptanceProb = Math.exp(-deltaEnergy / temperature);
+                if (Math.random() < acceptanceProb) {
+                    // emitter.$emit("progress", `New state is worse, accepting it anyway.`);
+                    currentState = newState;
+                    currentEnergy = newEnergy;
+                }
             }
         }
 
@@ -339,6 +361,7 @@ const simulatedAnnealing = <T>(initialState: T, energyFunc: EnergyFunc<T>, propo
         temperature *= opts.alpha;
     }
 
+    emitter.$emit("progress", `Final score is ${currentEnergy}.`);
     // Return the final state after annealing
     return currentState;
 };
@@ -430,6 +453,9 @@ export const scoreLastYear = (fileContent: any, markers: Marker[], students: Stu
 const doScoreLastYear = (data: any, markers: Marker[], students: Student[]) => {
     const allocation = buildRoomAllocation(data, markers, students);
     console.log("last year score is ", scoreRoomAllocation(allocation));
+
+    emitter.$emit("progress", 'Last year:');
+    summariseRoomAllocation(allocation);
 }
 
 function findMarkerByName(markers: Marker[], name: string): Marker | null {
