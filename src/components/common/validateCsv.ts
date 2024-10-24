@@ -37,11 +37,10 @@ export const supervisorCapacitySchema = {
 
 export const studentPresentationSchema = {
     type: 'object',
-    required: ['id', 'expertise', 'supervisor', 'marker avoid'],
+    required: ['id', 'supervisor', 'marker avoid'],
     additionalProperties: true,
     properties: {
         id: { type: 'string' },
-        expertise: { type: 'string' },
         supervisor: { type: 'string' },
         "marker avoid": { type: 'string' }
     }

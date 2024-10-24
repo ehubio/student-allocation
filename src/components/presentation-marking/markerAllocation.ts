@@ -61,7 +61,15 @@ export const allocateRooms = (markers: Marker[], students: Student[], noOfRooms:
             allocation: null
         }
     }
-    const initialAllocation = setInitialSolution(markers, students, noOfRooms);
+    const {students: studentsWithExpertise, errs} = assignStudentExpertise(markers, students);
+    if (errs.length > 0) {
+        return {
+            success: false,
+            errors,
+            allocation: null
+        }
+    }
+    const initialAllocation = setInitialSolution(markers, studentsWithExpertise, noOfRooms);
     const opts: AnnealingOptions = {
         initialTemp: 1000,
         alpha: 0.99,
@@ -90,25 +98,43 @@ export const validateInput = (markers: Marker[], students: Student[], noOfRooms:
         return errors
     }
 
-    const markerExpertises = markers.reduce((expertises: Set<string>, marker: Marker) => {
-        marker.expertise.forEach(ex => expertises.add(ex))
-        return expertises
-    }, new Set<string>());
-
-    const studentExpertises = students.reduce((expertises: Set<string>, student: Student) => {
-        expertises.add(student.expertise[0]);
-        return expertises
-    }, new Set<string>());
-
-    emitter.$emit("progress", `Student expertises: ${Array.from(studentExpertises)}`)
-    emitter.$emit("progress", `Marker expertises: ${Array.from(markerExpertises)}`)
-
-    studentExpertises.forEach(expertise => {
-        if (!markerExpertises.has(expertise)) {
-            errors.push(`Student has unknown expertise '${expertise}', check input data`);
-        }
-    });
+    // const markerExpertises = markers.reduce((expertises: Set<string>, marker: Marker) => {
+    //     marker.expertise.forEach(ex => expertises.add(ex))
+    //     return expertises
+    // }, new Set<string>());
+    //
+    // const studentExpertises = students.reduce((expertises: Set<string>, student: Student) => {
+    //     expertises.add(student.expertise[0]);
+    //     return expertises
+    // }, new Set<string>());
+    //
+    // emitter.$emit("progress", `Student expertises: ${Array.from(studentExpertises)}`)
+    // emitter.$emit("progress", `Marker expertises: ${Array.from(markerExpertises)}`)
+    //
+    // studentExpertises.forEach(expertise => {
+    //     if (!markerExpertises.has(expertise)) {
+    //         errors.push(`Student has unknown expertise '${expertise}', check input data`);
+    //     }
+    // });
     return errors
+}
+
+const assignStudentExpertise = (markers: Marker[], students: Student[]): {students: Student[], errs: string[]} => {
+    const errors: string[] = [];
+    students.forEach(student => {
+        const supervisorMarker = markers.find(marker => marker.id === student.supervisor);
+        if (!supervisorMarker) {
+            emitter.$emit("progress", `Failed to find supervisor ${student.supervisor} for student ${student.id}`)
+            errors.push(`Failed to find supervisor ${student.supervisor} for student ${student.id}, add them to markers list.`);
+            return {students, errs: errors};
+        }
+
+        // Assign the marker's expertise to the student's expertise
+        student.expertise = [...supervisorMarker.expertise];
+    });
+
+    // Return the updated array of students
+    return {students, errs: errors};
 }
 
 export const scoreRoomAllocation = (rooms: RoomAllocation, sc: Scores = scores): number => {
@@ -132,7 +158,7 @@ const scoreRoom = (room: Room, targetSize: number, sc: Scores): number => {
 
     room.students.forEach((student: Student) => {
         const noMatchingExpertise = room.markers.reduce((count, marker) => {
-            if (marker.expertise.includes(student.expertise[0])) {
+            if (includesAny(marker.expertise, student.expertise)) {
                 count += 1
             }
             return count
@@ -401,13 +427,13 @@ export const summariseRoomAllocation = (allocation: RoomAllocation) => {
 
         // 4. Count students whose expertise is covered by at least one marker
         const expertiseCoveredByAtLeastOne = room.students.filter(student =>
-            room.markers.some(marker => marker.expertise.includes(student.expertise[0]))
+            room.markers.some(marker => includesAny(marker.expertise, student.expertise))
         ).length;
         totalExpertiseCoveredByOne += expertiseCoveredByAtLeastOne;
 
         // 5. Count students whose expertise is covered by both markers
         const expertiseCoveredByBoth = room.students.filter(student =>
-            room.markers.every(marker => marker.expertise.includes(student.expertise[0]))
+            room.markers.every(marker => includesAny(marker.expertise, student.expertise))
         ).length;
         totalExpertiseCoveredByBoth += expertiseCoveredByBoth;
 
@@ -432,7 +458,6 @@ export const summariseRoomAllocation = (allocation: RoomAllocation) => {
     emitter.$emit("progress", `  - Students whose expertise is covered by at least one marker: ${Number(totalExpertiseCoveredByOne*100/totalStudents).toFixed(2)}%`);
     emitter.$emit("progress", `  - Students whose expertise is covered by both markers: ${Number(totalExpertiseCoveredByBoth*100/totalStudents).toFixed(2)}%`);
 };
-
 
 export const scoreLastYear = (fileContent: any, markers: Marker[], students: Student[]) => {
     Papa.parse(fileContent, {
@@ -515,3 +540,5 @@ export function buildRoomAllocation(data: any[], markers: Marker[], students: St
         studentsPerRoom
     };
 }
+
+const includesAny = <T>(arr: T[], values: T[]) => values.some((v) => arr.includes(v));
