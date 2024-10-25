@@ -55,6 +55,8 @@ export const markerSchema = {
         expertise: { type: 'string' },
         "phd students": { type: 'string' },
         academic: { type: 'boolean' },
+        "mark with": { type: 'string' },
+        "not mark with": { type: 'string' },
     }
 };
 
@@ -128,6 +130,16 @@ export function validateData<T extends { [key: string]: any }>(data: InputData, 
             if ("marker avoid" in obj) {
                 parsedObj.markerAvoid = obj["marker avoid"] ?
                     obj["marker avoid"].split(";").map((s: string) => s.trim()) : [];
+            }
+
+            // Parse not mark with into an array
+            if ("not mark with" in obj) {
+                parsedObj.notMarkWith = obj["not mark with"] ?
+                    obj["not mark with"].split(";").map((s: string) => s.trim()) : [];
+            }
+
+            if ("mark with" in obj) {
+                parsedObj.markWith = obj["mark with"] === "" ? null : obj["mark with"];
             }
 
             parsedData.push(parsedObj as T);

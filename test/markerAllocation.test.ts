@@ -4,7 +4,7 @@ import {
     type Student,
     type RoomAllocation,
     scoreRoomAllocation,
-    type Scores, allocateRooms, summariseRoomAllocation
+    type Scores, allocateRooms, summariseRoomAllocation, validateInput
 } from "../src/components/presentation-marking/markerAllocation.ts";
 import emitter from "../src/components/common/eventBus.ts";
 
@@ -42,7 +42,9 @@ test('can mark marker allocation', () => {
                         id: "marker2",
                         expertise: ["green", "blue"],
                         phdStudents: ["marker3"],
-                        academic: true
+                        academic: true,
+                        markWith: null,
+                        notMarkWith: null,
                     }
                 ]
             },
@@ -60,13 +62,17 @@ test('can mark marker allocation', () => {
                         id: "marker1",
                         expertise: ["green", "blue"],
                         phdStudents: [],
-                        academic: true
+                        academic: true,
+                        markWith: null,
+                        notMarkWith: null,
                     },
                     {
                         id: "marker3",
                         expertise: ["yellow"],
                         phdStudents: [],
-                        academic: true
+                        academic: true,
+                        markWith: null,
+                        notMarkWith: null,
                     }
                 ]
             }
@@ -83,25 +89,33 @@ test("can allocate markers", () => {
             id: "marker1",
             expertise: ["red"],
             phdStudents: [],
-            academic: true
+            academic: true,
+            markWith: null,
+            notMarkWith: null,
         },
         {
             id: "marker2",
             expertise: ["red"],
             phdStudents: ["marker1"],
-            academic: false
+            academic: false,
+            markWith: null,
+            notMarkWith: null,
         },
         {
             id: "marker3",
             expertise: ["green", "blue"],
             phdStudents: [],
-            academic: true
+            academic: true,
+            markWith: null,
+            notMarkWith: null,
         },
         {
             id: "marker4",
             expertise: ["green", "blue"],
             phdStudents: ["marker3"],
-            academic: false
+            academic: false,
+            markWith: null,
+            notMarkWith: null,
         }
     ];
     const students: Student[] = [
@@ -157,8 +171,8 @@ describe('summarizeRoomAllocation', () => {
                         { id: 's3', expertise: ['AI'], supervisor: 'm1', markerAvoid: [] }
                     ],
                     markers: [
-                        { id: 'm1', expertise: ['AI'], phdStudents: ['s1', 's3'], academic: true },
-                        { id: 'm2', expertise: ['ML', 'Data Science'], phdStudents: ['s2'], academic: false }
+                        { id: 'm1', expertise: ['AI'], phdStudents: ['s1', 's3'], academic: true, markWith: null, notMarkWith: null },
+                        { id: 'm2', expertise: ['ML', 'Data Science'], phdStudents: ['s2'], academic: false, markWith: null, notMarkWith: null }
                     ]
                 },
                 {
@@ -167,8 +181,8 @@ describe('summarizeRoomAllocation', () => {
                         { id: 's5', expertise: ['AI'], supervisor: 'm4', markerAvoid: [] }
                     ],
                     markers: [
-                        { id: 'm3', expertise: ['Cybersecurity'], phdStudents: ['s4'], academic: true },
-                        { id: 'm4', expertise: ['AI'], phdStudents: ['s5'], academic: true }
+                        { id: 'm3', expertise: ['Cybersecurity'], phdStudents: ['s4'], academic: true, markWith: null, notMarkWith: null },
+                        { id: 'm4', expertise: ['AI'], phdStudents: ['s5'], academic: true, markWith: null, notMarkWith: null }
                     ]
                 }
             ],
@@ -224,3 +238,83 @@ describe('summarizeRoomAllocation', () => {
         expect(emitMock.mock.calls[7][1]).toStrictEqual("  - Students whose expertise is covered by both markers: NaN%");
     });
 });
+
+
+describe("can validate input", () => {
+    it('should return error when noOfRooms is 0', () => {
+        const markers: Marker[] = [];
+        const students: Student[] = [];
+        const noOfRooms = 0;
+
+        const errors = validateInput(markers, students, noOfRooms);
+        expect(errors).toEqual(['Cannot allocate to fewer than 1 room']);
+    });
+
+    it('should return error when there are not enough markers for the number of rooms', () => {
+        const markers: Marker[] = [{ id: 'm1', expertise: [], phdStudents: [], academic: true, markWith: null, notMarkWith: null }];
+        const students: Student[] = [];
+        const noOfRooms = 2;
+
+        const errors = validateInput(markers, students, noOfRooms);
+        expect(errors).toEqual([
+            `Cannot allocate to 2 rooms. Only 1 markers uploaded. There must be at least 4 markers to allocate 2 per room.`,
+        ]);
+    });
+
+    it('should return error when marker has "mark with" set to unknown marker', () => {
+        const markers: Marker[] = [
+            { id: 'm1', expertise: [], phdStudents: [], academic: true, markWith: 'm2', notMarkWith: null },
+            { id: 'm3', expertise: [], phdStudents: [], academic: true, markWith: null, notMarkWith: null },
+        ];
+        const students: Student[] = [];
+        const noOfRooms = 1;
+
+        const errors = validateInput(markers, students, noOfRooms);
+        expect(errors).toEqual([
+            'Cannot start allocation. Marker m1 has "mark with" set to m2 who is not in the list of markers.',
+        ]);
+    });
+
+    it('should return error when marker has "mark with" which is not pairwise consistent', () => {
+        const markers: Marker[] = [
+            { id: 'm1', expertise: [], phdStudents: [], academic: true, markWith: 'm2', notMarkWith: null },
+            { id: 'm2', expertise: [], phdStudents: [], academic: true, markWith: 'm3', notMarkWith: null },
+            { id: 'm3', expertise: [], phdStudents: [], academic: true, markWith: 'm1', notMarkWith: null },
+        ];
+        const students: Student[] = [];
+        const noOfRooms = 1;
+
+        const errors = validateInput(markers, students, noOfRooms);
+        expect(errors).toEqual([
+            'Cannot start allocation. Marker m1 has "mark with" set to m2 but marker m2 is configured to mark with m3. They must match or one be empty.',
+            'Cannot start allocation. Marker m2 has "mark with" set to m3 but marker m3 is configured to mark with m1. They must match or one be empty.',
+            'Cannot start allocation. Marker m3 has "mark with" set to m1 but marker m1 is configured to mark with m2. They must match or one be empty.',
+        ]);
+    });
+
+    it('should return error when marker has "not mark with" set to unknown markers', () => {
+        const markers: Marker[] = [
+            { id: 'm1', expertise: [], phdStudents: [], academic: true, markWith: null, notMarkWith: ['m2', 'm3', 'm4'] },
+            { id: 'm4', expertise: [], phdStudents: [], academic: true, markWith: null, notMarkWith: null },
+        ];
+        const students: Student[] = [];
+        const noOfRooms = 1;
+
+        const errors = validateInput(markers, students, noOfRooms);
+        expect(errors).toEqual([
+            `Cannot start allocation. Marker m1 has 'm2', 'm3' as "not mark with" who is not in the list of known markers.`,
+        ]);
+    });
+
+    it('should return no errors for valid input', () => {
+        const markers: Marker[] = [
+            { id: 'm1', expertise: [], phdStudents: [], academic: true, markWith: null, notMarkWith: null },
+            { id: 'm2', expertise: [], phdStudents: [], academic: true, markWith: null, notMarkWith: null },
+        ];
+        const students: Student[] = [];
+        const noOfRooms = 1;
+
+        const errors = validateInput(markers, students, noOfRooms);
+        expect(errors).toEqual([]);
+    });
+})

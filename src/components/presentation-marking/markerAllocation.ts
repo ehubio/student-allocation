@@ -15,6 +15,8 @@ export type Marker = {
     expertise: string[],
     phdStudents: string[],
     academic: boolean,
+    markWith: null | string,
+    notMarkWith: null | string[],
     [key: string]: any // Allow additional properties
 };
 
@@ -98,24 +100,33 @@ export const validateInput = (markers: Marker[], students: Student[], noOfRooms:
         return errors
     }
 
-    // const markerExpertises = markers.reduce((expertises: Set<string>, marker: Marker) => {
-    //     marker.expertise.forEach(ex => expertises.add(ex))
-    //     return expertises
-    // }, new Set<string>());
-    //
-    // const studentExpertises = students.reduce((expertises: Set<string>, student: Student) => {
-    //     expertises.add(student.expertise[0]);
-    //     return expertises
-    // }, new Set<string>());
-    //
-    // emitter.$emit("progress", `Student expertises: ${Array.from(studentExpertises)}`)
-    // emitter.$emit("progress", `Marker expertises: ${Array.from(markerExpertises)}`)
-    //
-    // studentExpertises.forEach(expertise => {
-    //     if (!markerExpertises.has(expertise)) {
-    //         errors.push(`Student has unknown expertise '${expertise}', check input data`);
-    //     }
-    // });
+    const markerIds = markers.map((marker: Marker) => marker.id);
+
+    markers.forEach((marker: Marker) => {
+        if (marker.markWith) {
+            const pairedMarker = markers.find((m: Marker) => m.id == marker.markWith);
+            if (!pairedMarker) {
+                errors.push(`Cannot start allocation. Marker ${marker.id} has "mark with" set to ${marker.markWith} who ` +
+                    `is not in the list of markers.`);
+                return errors
+            } else if (pairedMarker.markWith && pairedMarker.markWith !== marker.id) {
+                errors.push(`Cannot start allocation. Marker ${marker.id} has "mark with" set to ${marker.markWith} but ` +
+                    `marker ${pairedMarker.id} is configured to mark with ${pairedMarker.markWith}. They must match or one be empty.`);
+                return errors
+            }
+        }
+
+        if (marker.notMarkWith) {
+            const unknownMarkerIds = marker.notMarkWith.filter(markerId => !markerIds.includes(markerId));
+            if (unknownMarkerIds.length > 0) {
+                const unknownMarkersText = unknownMarkerIds.map(item => `'${item}'`).join(', ');
+                errors.push(`Cannot start allocation. Marker ${marker.id} has ${unknownMarkersText} as ` +
+                    `"not mark with" who is not in the list of known markers.`);
+                return errors
+            }
+        }
+    });
+
     return errors
 }
 
@@ -192,24 +203,48 @@ const setInitialSolution = (markers: Marker[], students: Student[], noOfRooms: n
     const shuffledMarkers = shuffle(markers);
     const shuffledStudents = shuffle(students);
 
-    // Allocate academic markers first
-    const academicMarkers = shuffledMarkers.filter(m => m.academic);
-    const nonAcademicMarkers = shuffledMarkers.filter(m => !m.academic);
+    // Handle marker pairs who have "markWith" set
+    const pairedMarkers: Marker[] = [];
 
-    for (let i = 0; i < rooms.length; i++) {
-        if (academicMarkers.length > 0) {
-            rooms[i].markers.push(academicMarkers.pop()!);
+    markers.forEach(marker => {
+        if (marker.markWith) {
+            const markerPartner = markers.find(m => m.id === marker.markWith);
+            if (markerPartner) {
+                markerPartner.markWith = marker.id
+                if (!pairedMarkers.includes(marker) && !pairedMarkers.includes(markerPartner)) {
+                    pairedMarkers.push(marker, markerPartner);
+                    // Place forced pair in the next available room
+                    const room = rooms.find(r => r.markers.length < 2);
+                    if (room) {
+                        room.markers.push(marker, markerPartner);
+                    }
+                }
+            }
         }
-    }
+    });
 
-    // Allocate remaining markers, do we need to be careful with not putting people with their PhD student here?
-    let currentRoom = 0;
-    const remainingMarkers = shuffle(nonAcademicMarkers.concat(academicMarkers));
-    for (let i = 0; i < rooms.length; i++) {
-        if (remainingMarkers.length > 0) {
-            rooms[i].markers.push(remainingMarkers.pop()!);
+    // Remove paired markers from the general pool
+    let remainingMarkers = shuffledMarkers.filter(m => !pairedMarkers.includes(m));
+
+    // Allocate academic markers
+    const academicMarkers = remainingMarkers.filter(m => m.academic);
+    const nonAcademicMarkers = remainingMarkers.filter(m => !m.academic);
+
+    // Allocate academic markers (non-paired)
+    rooms.forEach(room => {
+        if (room.markers.length < 2 && academicMarkers.length > 0) {
+            room.markers.push(academicMarkers.pop()!);
         }
-    }
+    });
+
+    // Allocate remaining non-academic markers, do we need to be careful with not putting people with their PhD student here?
+    remainingMarkers = shuffle(nonAcademicMarkers.concat(academicMarkers));
+    remainingMarkers.forEach(marker => {
+        const room = rooms.find(r => r.markers.length < 2);
+        if (room) {
+            room.markers.push(marker);
+        }
+    });
 
     // Initially distribute students in a round-robin manner
     for (let i = 0; i < shuffledStudents.length; i++) {
@@ -281,9 +316,32 @@ const canSwapMarkers = (room1: Room, room2: Room, marker1: Marker, marker2: Mark
         xor((marker1.academic && room1AcademicCount === 1),
             (marker2.academic && room2AcademicCount === 1));
 
+    // We can swap markers if both of them do not have markWith set
+    // so they would violate the constraint if either of them were set
+    const wouldViolateFixedMarkerConstraint =
+        marker1.markWith || marker2.markWith
+
+    // we can swap a marker if the other marker in the room is not their phd student. Or they are not the phd student
+    // of the other marker in the room
+    // would violate constraint if
+    // marker2 moving into room 1 if
+    // 1. the other marker in room 1 has phd student who is marker2
+    // 2. the other marker in room 1 is the phd student of marker 2
+    const otherMarkerRoom1 = room1.markers.find(m => m.id !== marker1.id);
+    const otherMarkerRoom2 = room2.markers.find(m => m.id !== marker2.id);
     const wouldViolatePhdConstraint =
-        room1.markers.some(m => m.phdStudents.includes(marker2.id)) ||
-        room2.markers.some(m => m.phdStudents.includes(marker1.id));
+        otherMarkerRoom1 && otherMarkerRoom2 &&
+        (otherMarkerRoom1.phdStudents.includes(marker2.id) || marker2.phdStudents.includes(otherMarkerRoom1.id)
+        || otherMarkerRoom2.phdStudents.includes(marker1.id) || marker1.phdStudents.includes(otherMarkerRoom1.id));
+
+    const wouldViolateNotMarkWithConstraint =
+        otherMarkerRoom1 && otherMarkerRoom2 &&
+        (
+            (otherMarkerRoom1.notMarkWith?.includes(marker2.id) ?? false) ||
+            (marker2.notMarkWith?.includes(otherMarkerRoom1.id) ?? false) ||
+            (otherMarkerRoom2.notMarkWith?.includes(marker1.id) ?? false) ||
+            (marker1.notMarkWith?.includes(otherMarkerRoom2.id) ?? false)
+        );
 
     const room1Supervisors = room1.students.map(s => s.supervisor);
     const room2Supervisors = room2.students.map(s => s.supervisor);
@@ -295,8 +353,9 @@ const canSwapMarkers = (room1: Room, room2: Room, marker1: Marker, marker2: Mark
     const wouldViolateMarkerAvoidConstraint =
         room1MarkerAvoid.includes(marker2.id) || room2MarkerAvoid.includes(marker1.id)
 
-    return !wouldViolateAcademicConstraint && !wouldViolatePhdConstraint && !wouldViolateNotMarkingStudentConstraint
-        && !wouldViolateMarkerAvoidConstraint;
+    return !wouldViolateAcademicConstraint && !wouldViolateFixedMarkerConstraint && !wouldViolatePhdConstraint
+        && !wouldViolateNotMarkingStudentConstraint && !wouldViolateMarkerAvoidConstraint
+        && !wouldViolateNotMarkWithConstraint;
 };
 
 const canSwapStudents = (room1: Room, room2: Room, student1: Student, student2: Student): boolean => {
@@ -542,3 +601,4 @@ export function buildRoomAllocation(data: any[], markers: Marker[], students: St
 }
 
 const includesAny = <T>(arr: T[], values: T[]) => values.some((v) => arr.includes(v));
+const includesAll = <T>(arr: T[], values: T[]) => values.every((v) => arr.includes(v));
