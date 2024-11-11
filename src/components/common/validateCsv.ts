@@ -42,7 +42,8 @@ export const studentPresentationSchema = {
     properties: {
         id: { type: 'string' },
         supervisor: { type: 'string' },
-        "marker avoid": { type: 'string' }
+        "marker avoid": { type: 'string' },
+        marker: { type: 'string' },
     }
 };
 
@@ -130,6 +131,12 @@ export function validateData<T extends { [key: string]: any }>(data: InputData, 
             if ("marker avoid" in obj) {
                 parsedObj.markerAvoid = obj["marker avoid"] ?
                     obj["marker avoid"].split(";").map((s: string) => s.trim()) : [];
+            }
+
+            // Parse marker into an array
+            if ("marker" in obj) {
+                parsedObj.marker = obj.marker ?
+                    obj.marker.split(";").map((s: string) => s.trim()) : [];
             }
 
             // Parse not mark with into an array

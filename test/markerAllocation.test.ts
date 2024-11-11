@@ -15,6 +15,7 @@ test('can mark marker allocation', () => {
         subjectAreaMatchFirst: 5,
         subjectAreaMatchSecond: 2,
         roomSize: 2,
+        fixedMarker: 10
     }
     // Setup where we have
     // 2 students with the same supervisor in 1 room -20
@@ -28,13 +29,15 @@ test('can mark marker allocation', () => {
                         id: "student1",
                         expertise: ["blue"],
                         supervisor: "marker1",
-                        markerAvoid: ["marker3"]
+                        markerAvoid: ["marker3"],
+                        marker: [],
                     },
                     {
                         id: "student2",
                         expertise: ["yellow"],
                         supervisor: "marker1",
-                        markerAvoid: []
+                        markerAvoid: [],
+                        marker: [],
                     }
                 ],
                 markers: [
@@ -54,7 +57,8 @@ test('can mark marker allocation', () => {
                         id: "student3",
                         expertise: ["green"],
                         supervisor: "marker2",
-                        markerAvoid: []
+                        markerAvoid: [],
+                        marker: [],
                     }
                 ],
                 markers: [
@@ -123,25 +127,29 @@ test("can allocate markers", () => {
             id: "student1",
             expertise: ["red"],
             supervisor: "marker1",
-            markerAvoid: []
+            markerAvoid: [],
+            marker: [],
         },
         {
             id: "student1",
             expertise: ["red"],
             supervisor: "marker1",
-            markerAvoid: []
+            markerAvoid: [],
+            marker: [],
         },
         {
             id: "student1",
             expertise: ["blue"],
             supervisor: "marker3",
-            markerAvoid: []
+            markerAvoid: [],
+            marker: [],
         },
         {
             id: "student1",
             expertise: ["green"],
             supervisor: "marker3",
-            markerAvoid: []
+            markerAvoid: [],
+            marker: [],
         }
     ]
     const allocated = allocateRooms(markers, students, 2);
@@ -166,9 +174,9 @@ describe('summarizeRoomAllocation', () => {
             rooms: [
                 {
                     students: [
-                        { id: 's1', expertise: ['AI'], supervisor: 'm1', markerAvoid: [] },
-                        { id: 's2', expertise: ['ML'], supervisor: 'm2', markerAvoid: [] },
-                        { id: 's3', expertise: ['AI'], supervisor: 'm1', markerAvoid: [] }
+                        { id: 's1', expertise: ['AI'], supervisor: 'm1', markerAvoid: [], marker: [] },
+                        { id: 's2', expertise: ['ML'], supervisor: 'm2', markerAvoid: [], marker: [] },
+                        { id: 's3', expertise: ['AI'], supervisor: 'm1', markerAvoid: [], marker: [] }
                     ],
                     markers: [
                         { id: 'm1', expertise: ['AI'], phdStudents: ['s1', 's3'], academic: true, markWith: null, notMarkWith: null },
@@ -177,8 +185,8 @@ describe('summarizeRoomAllocation', () => {
                 },
                 {
                     students: [
-                        { id: 's4', expertise: ['Cybersecurity'], supervisor: 'm3', markerAvoid: [] },
-                        { id: 's5', expertise: ['AI'], supervisor: 'm4', markerAvoid: [] }
+                        { id: 's4', expertise: ['Cybersecurity'], supervisor: 'm3', markerAvoid: [], marker: [] },
+                        { id: 's5', expertise: ['AI'], supervisor: 'm4', markerAvoid: [], marker: [] }
                     ],
                     markers: [
                         { id: 'm3', expertise: ['Cybersecurity'], phdStudents: ['s4'], academic: true, markWith: null, notMarkWith: null },

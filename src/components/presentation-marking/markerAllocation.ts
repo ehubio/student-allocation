@@ -7,6 +7,7 @@ export type Student = {
     expertise: string[];
     supervisor: string,
     markerAvoid: string[],
+    marker: string[],
     [key: string]: any // Allow additional properties
 };
 
@@ -41,7 +42,8 @@ export type Scores = {
     sameSupervisor: number,
     subjectAreaMatchFirst: number,
     subjectAreaMatchSecond: number,
-    roomSize: number
+    roomSize: number,
+    fixedMarker: number,
 };
 
 // -ve scores to penalise, +ve for reward
@@ -50,7 +52,8 @@ const scores: Scores = {
     sameSupervisor: -20,
     subjectAreaMatchFirst: 3,
     subjectAreaMatchSecond: 1,
-    roomSize: 5
+    roomSize: 5,
+    fixedMarker: 30
 };
 
 export const allocateRooms = (markers: Marker[], students: Student[], noOfRooms: number): Result => {
@@ -101,6 +104,8 @@ export const validateInput = (markers: Marker[], students: Student[], noOfRooms:
     }
 
     const markerIds = markers.map((marker: Marker) => marker.id);
+    const markerPairs = new Map<string, string>();
+    const markerAvoidPairs = new Map<string, string[]>();
 
     markers.forEach((marker: Marker) => {
         if (marker.markWith) {
@@ -114,6 +119,9 @@ export const validateInput = (markers: Marker[], students: Student[], noOfRooms:
                     `marker ${pairedMarker.id} is configured to mark with ${pairedMarker.markWith}. They must match or one be empty.`);
                 return errors
             }
+
+            markerPairs.set(marker.id, marker.markWith);
+            markerPairs.set(marker.markWith, marker.id);
         }
 
         if (marker.notMarkWith) {
@@ -124,8 +132,63 @@ export const validateInput = (markers: Marker[], students: Student[], noOfRooms:
                     `"not mark with" who is not in the list of known markers.`);
                 return errors
             }
+
+            if (!markerAvoidPairs.has(marker.id)) {
+                markerAvoidPairs.set(marker.id, []);
+            }
+
+            marker.notMarkWith.forEach(otherMarker => {
+                // Add the current marker to the other marker's list if not already present
+                if (!markerAvoidPairs.has(otherMarker)) {
+                    markerAvoidPairs.set(otherMarker, []);
+                }
+                if (!markerAvoidPairs.get(otherMarker)!.includes(marker.id)) {
+                    markerAvoidPairs.get(otherMarker)!.push(marker.id);
+                }
+
+                // Add the other marker to the current marker's list if not already present
+                if (!markerAvoidPairs.get(marker.id)!.includes(otherMarker)) {
+                    markerAvoidPairs.get(marker.id)!.push(otherMarker);
+                }
+            });
         }
     });
+
+    students.forEach((student: Student) => {
+        if (student.marker.length > 2) {
+            errors.push(`Cannot start allocation. Student ${student.id} has more than 2 markers specified.`)
+        }
+        if (includesAny(student.markerAvoid, student.marker)) {
+            errors.push(`Cannot start allocation. Student ${student.id} has a marker set who is also in their list of` +
+            ` markers to avoid.`)
+            return errors
+        }
+        if (!includesAll(markerIds, student.marker)) {
+            errors.push(`Cannot start allocation. Student ${student.id} has marker who is not in the markers csv.`)
+            return errors
+        }
+        if (!includesAll(markerIds, student.markerAvoid)) {
+            errors.push(`Cannot start allocation. Student ${student.id} has "marker avoid" who is not in the markers csv.`)
+            return errors
+        }
+        if (student.marker.length == 2) {
+            // Ensure consistent with marker pairs and avoids
+            const marker1Pair = markerPairs.get(student.marker[0]);
+            const marker2Pair = markerPairs.get(student.marker[1]);
+            if ((marker1Pair && marker1Pair !== student.marker[1]) || (marker2Pair && marker2Pair !== student.marker[0])) {
+                errors.push(`Cannot start allocation. Student ${student.id} has 2 markers, ${student.marker[0]} and ` +
+                `${student.marker[1]} but these are configured to pair with different markers in markers.csv.`);
+                return errors
+            }
+            const marker1Avoid = markerAvoidPairs.get(student.marker[0]);
+            const marker2Avoid = markerAvoidPairs.get(student.marker[1]);
+            if ((marker1Avoid && marker1Avoid.includes(student.marker[1])) ||
+                (marker2Avoid && marker2Avoid.includes(student.marker[0]))) {
+                errors.push(`Cannot start allocation. Student ${student.id} has 2 markers, ${student.marker[0]} and ` +
+                `${student.marker[1]} but these are configured to avoid each other in markers.csv.`)
+            }
+        }
+    })
 
     return errors
 }
@@ -182,6 +245,12 @@ const scoreRoom = (room: Room, targetSize: number, sc: Scores): number => {
         if (markerIds.has(student.supervisor)) {
             roomTotal += sc.supervisorMarkingStudent;
         }
+        if (student.marker.includes(room.markers[0].id)) {
+            roomTotal += sc.fixedMarker;
+        }
+        if (room.markers[1] && student.marker.includes(room.markers[1].id)) {
+            roomTotal += sc.fixedMarker;
+        }
 
         supervisorCount.set(student.supervisor, (supervisorCount.get(student.supervisor) || 0) + 1);
     })
@@ -203,18 +272,57 @@ const setInitialSolution = (markers: Marker[], students: Student[], noOfRooms: n
     const shuffledMarkers = shuffle(markers);
     const shuffledStudents = shuffle(students);
 
+    // Handle students who have one or two fixed markers set
+    const studentsWith2FixedMarkers = shuffledStudents.filter(s => s.marker.length == 2);
+    const studentsWith1FixedMarker = shuffledStudents.filter(s => s.marker.length == 1);
+    const remainingStudents = shuffledStudents.filter(s => s.marker.length == 0);
+    const fixedMarkers: Marker[] = [];
+
+    studentsWith2FixedMarkers.forEach(student => {
+        const room = rooms.find(r => r.markers.length == 0);
+        if (room) {
+            const marker1 = markers.find(m => m.id === student.marker[0])!;
+            const marker2 = markers.find(m => m.id === student.marker[1])!;
+            room.markers.push(marker1, marker2);
+            room.students.push(student);
+            fixedMarkers.push(marker1, marker2);
+        }
+    });
+
+    studentsWith1FixedMarker.forEach(student => {
+        const roomWithMarkerAlready = rooms.find(r => {
+            const markerIds = r.markers.map(marker => marker.id);
+            return markerIds.includes(student.marker[0]);
+        });
+        if (roomWithMarkerAlready) {
+            roomWithMarkerAlready.students.push(student)
+        } else {
+            const room = rooms.find(r => r.markers.length < 1);
+            if (room) {
+                const marker1 = markers.find(m => m.id === student.marker[0])!;
+                room.markers.push(marker1);
+                room.students.push(student);
+                fixedMarkers.push(marker1);
+            }
+        }
+    });
+
+    console.log(rooms)
+
+
     // Handle marker pairs who have "markWith" set
+    let remainingMarkers = shuffledMarkers.filter(m => !fixedMarkers.includes(m));
     const pairedMarkers: Marker[] = [];
 
-    markers.forEach(marker => {
+    remainingMarkers.forEach(marker => {
         if (marker.markWith) {
-            const markerPartner = markers.find(m => m.id === marker.markWith);
+            const markerPartner = remainingMarkers.find(m => m.id === marker.markWith);
             if (markerPartner) {
                 markerPartner.markWith = marker.id
                 if (!pairedMarkers.includes(marker) && !pairedMarkers.includes(markerPartner)) {
                     pairedMarkers.push(marker, markerPartner);
                     // Place forced pair in the next available room
-                    const room = rooms.find(r => r.markers.length < 2);
+                    const room = rooms.find(r => r.markers.length == 0);
                     if (room) {
                         room.markers.push(marker, markerPartner);
                     }
@@ -224,7 +332,7 @@ const setInitialSolution = (markers: Marker[], students: Student[], noOfRooms: n
     });
 
     // Remove paired markers from the general pool
-    let remainingMarkers = shuffledMarkers.filter(m => !pairedMarkers.includes(m));
+    remainingMarkers = remainingMarkers.filter(m => !pairedMarkers.includes(m));
 
     // Allocate academic markers
     const academicMarkers = remainingMarkers.filter(m => m.academic);
@@ -246,11 +354,23 @@ const setInitialSolution = (markers: Marker[], students: Student[], noOfRooms: n
         }
     });
 
-    // Initially distribute students in a round-robin manner
-    for (let i = 0; i < shuffledStudents.length; i++) {
-        const roomIndex = i % noOfRooms;
-        rooms[roomIndex].students.push(shuffledStudents[i]);
-    }
+    // Initially distribute remaining students in a round-robin manner
+    const targetRoomSize = Math.floor(studentsPerRoom)
+    let startIdx = 0
+    // Fill each room up to the target size
+    rooms.forEach(room => {
+        const neededStudents = targetRoomSize - room.students.length;
+        room.students.push(...remainingStudents.slice(startIdx, startIdx + neededStudents));
+        startIdx += neededStudents;
+    });
+
+    // Distribute remaining students evenly across rooms to handle +1 cases
+    remainingStudents.slice(startIdx).forEach((student, index) => {
+        const roomIndex = index % rooms.length;
+        rooms[roomIndex].students.push(student);
+    });
+
+    console.log(rooms);
 
     return { rooms, studentsPerRoom };
 }
@@ -321,6 +441,14 @@ const canSwapMarkers = (room1: Room, room2: Room, marker1: Marker, marker2: Mark
     const wouldViolateFixedMarkerConstraint =
         marker1.markWith || marker2.markWith
 
+    // Cannot swap a marker if we have a fixed student in this room
+    // We might be able to relax this in the future and maybe move the student with us
+    // or adjust the scoring very highly to try and guarantee it, but it is quite fiddly
+    // const room1FixedMarkers = room1.students.find(s => s.marker.includes(marker1.id));
+    // const room2FixedMarkers = room2.students.find(s => s.marker.includes(marker2.id));
+    // const wouldViolateFixedStudentConstraint = !!room1FixedMarkers || !!room2FixedMarkers
+
+
     // we can swap a marker if the other marker in the room is not their phd student. Or they are not the phd student
     // of the other marker in the room
     // would violate constraint if
@@ -367,7 +495,10 @@ const canSwapStudents = (room1: Room, room2: Room, student1: Student, student2: 
 
     const wouldViolateMarkerAvoidConstraint =
         student2.markerAvoid.some(m => room1Markers.includes(m)) ||
-        student1.markerAvoid.some(m => room2Markers.includes(m))
+        student1.markerAvoid.some(m => room2Markers.includes(m));
+
+    // const wouldViolateFixedMarkerConstraint =
+    //     student1.marker.length > 0 || student2.marker.length > 0;
 
     return !wouldViolateNotMarkingStudentConstraint && !wouldViolateMarkerAvoidConstraint;
 };
