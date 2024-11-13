@@ -120,6 +120,7 @@ export const validateInput = (markers: Marker[], students: Student[], noOfRooms:
                 return errors
             }
 
+            pairedMarker.markWith = marker.id;
             markerPairs.set(marker.id, marker.markWith);
             markerPairs.set(marker.markWith, marker.id);
         }
@@ -328,7 +329,8 @@ const setInitialSolution = (markers: Marker[], students: Student[], noOfRooms: n
     console.log(rooms)
 
     // Handle marker pairs who have "markWith" set
-    let remainingMarkers = shuffledMarkers.filter(m => !fixedMarkers.includes(m));
+    const allocatedMarkers = rooms.flatMap(room => room.markers.map(marker => marker.id));
+    let remainingMarkers = shuffledMarkers.filter(m => !allocatedMarkers.includes(m.id));
     const pairedMarkers: Marker[] = [];
 
     remainingMarkers.forEach(marker => {
@@ -456,7 +458,7 @@ const canSwapMarkers = (room1: Room, room2: Room, marker1: Marker, marker2: Mark
     // We can swap markers if both of them do not have markWith set
     // so they would violate the constraint if either of them were set
     const wouldViolateFixedMarkerConstraint =
-        marker1.markWith || marker2.markWith
+        !!marker1.markWith || !!marker2.markWith
 
     // Cannot swap a marker if we have a fixed student in this room
     // We might be able to relax this in the future and maybe move the student with us
@@ -475,12 +477,12 @@ const canSwapMarkers = (room1: Room, room2: Room, marker1: Marker, marker2: Mark
     const otherMarkerRoom1 = room1.markers.find(m => m.id !== marker1.id);
     const otherMarkerRoom2 = room2.markers.find(m => m.id !== marker2.id);
     const wouldViolatePhdConstraint =
-        otherMarkerRoom1 && otherMarkerRoom2 &&
+        !!otherMarkerRoom1 && !!otherMarkerRoom2 &&
         (otherMarkerRoom1.phdStudents.includes(marker2.id) || marker2.phdStudents.includes(otherMarkerRoom1.id)
         || otherMarkerRoom2.phdStudents.includes(marker1.id) || marker1.phdStudents.includes(otherMarkerRoom1.id));
 
     const wouldViolateNotMarkWithConstraint =
-        otherMarkerRoom1 && otherMarkerRoom2 &&
+        !!otherMarkerRoom1 && !!otherMarkerRoom2 &&
         (
             (otherMarkerRoom1.notMarkWith?.includes(marker2.id) ?? false) ||
             (marker2.notMarkWith?.includes(otherMarkerRoom1.id) ?? false) ||
