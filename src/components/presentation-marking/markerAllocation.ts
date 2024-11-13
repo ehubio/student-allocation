@@ -294,8 +294,26 @@ const setInitialSolution = (markers: Marker[], students: Student[], noOfRooms: n
             const markerIds = r.markers.map(marker => marker.id);
             return markerIds.includes(student.marker[0]);
         });
+        const marker1 = markers.find(m => m.id === student.marker[0])!;
+        const markerHasPair = markers.find(m => m.markWith === marker1.id || marker1.markWith === m.id);
         if (roomWithMarkerAlready) {
             roomWithMarkerAlready.students.push(student)
+        } else if (markerHasPair) {
+            const pairHasRoom = rooms.find(r => {
+                const markerIds = r.markers.map(marker => marker.id);
+                return markerIds.includes(markerHasPair.id);
+            });
+            if (pairHasRoom) {
+                pairHasRoom.students.push(student);
+                pairHasRoom.markers.push(marker1);
+            } else {
+                const room = rooms.find(r => r.markers.length < 1);
+                if (room) {
+                    room.markers.push(marker1);
+                    room.markers.push(markerHasPair);
+                    room.students.push(student);
+                }
+            }
         } else {
             const room = rooms.find(r => r.markers.length < 1);
             if (room) {
@@ -308,7 +326,6 @@ const setInitialSolution = (markers: Marker[], students: Student[], noOfRooms: n
     });
 
     console.log(rooms)
-
 
     // Handle marker pairs who have "markWith" set
     let remainingMarkers = shuffledMarkers.filter(m => !fixedMarkers.includes(m));
