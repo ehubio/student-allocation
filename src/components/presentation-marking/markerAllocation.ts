@@ -70,7 +70,7 @@ export const allocateRooms = (markers: Marker[], students: Student[], noOfRooms:
     if (errs.length > 0) {
         return {
             success: false,
-            errors,
+            errors: errs,
             allocation: null
         }
     }
@@ -156,6 +156,9 @@ export const validateInput = (markers: Marker[], students: Student[], noOfRooms:
     });
 
     students.forEach((student: Student) => {
+        if (!markerIds.includes(student.supervisor)) {
+            errors.push(`Cannot start allocation. Student '${student.id}' has supervisor '${student.supervisor}' who is not found in markers file.`)
+        }
         if (student.marker.length > 2) {
             errors.push(`Cannot start allocation. Student ${student.id} has more than 2 markers specified.`)
         }
