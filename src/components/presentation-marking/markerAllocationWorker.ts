@@ -10,6 +10,8 @@ self.onmessage = (event) => {
 
     const allocation = allocateRooms(markerData, studentData, noOfRooms);
 
+    console.log("allocation", allocation)
+
     // Send the result back to the main thread
     self.postMessage({ type: 'result', data: allocation });
 };

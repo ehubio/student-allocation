@@ -48,6 +48,7 @@ test('can mark marker allocation', () => {
                         academic: true,
                         markWith: null,
                         notMarkWith: null,
+                        availableToMark: true,
                     }
                 ]
             },
@@ -69,6 +70,7 @@ test('can mark marker allocation', () => {
                         academic: true,
                         markWith: null,
                         notMarkWith: null,
+                        availableToMark: true,
                     },
                     {
                         id: "marker3",
@@ -77,6 +79,7 @@ test('can mark marker allocation', () => {
                         academic: true,
                         markWith: null,
                         notMarkWith: null,
+                        availableToMark: true,
                     }
                 ]
             }
@@ -96,6 +99,7 @@ test("can allocate markers", () => {
             academic: true,
             markWith: null,
             notMarkWith: null,
+            availableToMark: true,
         },
         {
             id: "marker2",
@@ -104,6 +108,7 @@ test("can allocate markers", () => {
             academic: false,
             markWith: null,
             notMarkWith: null,
+            availableToMark: true,
         },
         {
             id: "marker3",
@@ -112,6 +117,7 @@ test("can allocate markers", () => {
             academic: true,
             markWith: null,
             notMarkWith: null,
+            availableToMark: true,
         },
         {
             id: "marker4",
@@ -120,6 +126,7 @@ test("can allocate markers", () => {
             academic: false,
             markWith: null,
             notMarkWith: null,
+            availableToMark: true,
         }
     ];
     const students: Student[] = [
@@ -179,8 +186,8 @@ describe('summarizeRoomAllocation', () => {
                         { id: 's3', expertise: ['AI'], supervisor: 'm1', markerAvoid: [], marker: [] }
                     ],
                     markers: [
-                        { id: 'm1', expertise: ['AI'], phdStudents: ['s1', 's3'], academic: true, markWith: null, notMarkWith: null },
-                        { id: 'm2', expertise: ['ML', 'Data Science'], phdStudents: ['s2'], academic: false, markWith: null, notMarkWith: null }
+                        { id: 'm1', expertise: ['AI'], phdStudents: ['s1', 's3'], academic: true, markWith: null, notMarkWith: null, availableToMark: true },
+                        { id: 'm2', expertise: ['ML', 'Data Science'], phdStudents: ['s2'], academic: false, markWith: null, notMarkWith: null, availableToMark: true }
                     ]
                 },
                 {
@@ -189,8 +196,8 @@ describe('summarizeRoomAllocation', () => {
                         { id: 's5', expertise: ['AI'], supervisor: 'm4', markerAvoid: [], marker: [] }
                     ],
                     markers: [
-                        { id: 'm3', expertise: ['Cybersecurity'], phdStudents: ['s4'], academic: true, markWith: null, notMarkWith: null },
-                        { id: 'm4', expertise: ['AI'], phdStudents: ['s5'], academic: true, markWith: null, notMarkWith: null }
+                        { id: 'm3', expertise: ['Cybersecurity'], phdStudents: ['s4'], academic: true, markWith: null, notMarkWith: null, availableToMark: true },
+                        { id: 'm4', expertise: ['AI'], phdStudents: ['s5'], academic: true, markWith: null, notMarkWith: null, availableToMark: true }
                     ]
                 }
             ],
@@ -259,20 +266,20 @@ describe("can validate input", () => {
     });
 
     it('should return error when there are not enough markers for the number of rooms', () => {
-        const markers: Marker[] = [{ id: 'm1', expertise: [], phdStudents: [], academic: true, markWith: null, notMarkWith: null }];
+        const markers: Marker[] = [{ id: 'm1', expertise: [], phdStudents: [], academic: true, markWith: null, notMarkWith: null, availableToMark: true }];
         const students: Student[] = [];
         const noOfRooms = 2;
 
         const errors = validateInput(markers, students, noOfRooms);
         expect(errors).toEqual([
-            `Cannot allocate to 2 rooms. Only 1 markers uploaded. There must be at least 4 markers to allocate 2 per room.`,
+            `Cannot allocate to 2 rooms. Only 1 available marker uploaded. There must be at least 4 markers to allocate 2 per room.`,
         ]);
     });
 
     it('should return error when marker has "mark with" set to unknown marker', () => {
         const markers: Marker[] = [
-            { id: 'm1', expertise: [], phdStudents: [], academic: true, markWith: 'm2', notMarkWith: null },
-            { id: 'm3', expertise: [], phdStudents: [], academic: true, markWith: null, notMarkWith: null },
+            { id: 'm1', expertise: [], phdStudents: [], academic: true, markWith: 'm2', notMarkWith: null, availableToMark: true },
+            { id: 'm3', expertise: [], phdStudents: [], academic: true, markWith: null, notMarkWith: null, availableToMark: true },
         ];
         const students: Student[] = [];
         const noOfRooms = 1;
@@ -285,9 +292,9 @@ describe("can validate input", () => {
 
     it('should return error when marker has "mark with" which is not pairwise consistent', () => {
         const markers: Marker[] = [
-            { id: 'm1', expertise: [], phdStudents: [], academic: true, markWith: 'm2', notMarkWith: null },
-            { id: 'm2', expertise: [], phdStudents: [], academic: true, markWith: 'm3', notMarkWith: null },
-            { id: 'm3', expertise: [], phdStudents: [], academic: true, markWith: 'm1', notMarkWith: null },
+            { id: 'm1', expertise: [], phdStudents: [], academic: true, markWith: 'm2', notMarkWith: null, availableToMark: true },
+            { id: 'm2', expertise: [], phdStudents: [], academic: true, markWith: 'm3', notMarkWith: null, availableToMark: true },
+            { id: 'm3', expertise: [], phdStudents: [], academic: true, markWith: 'm1', notMarkWith: null, availableToMark: true },
         ];
         const students: Student[] = [];
         const noOfRooms = 1;
@@ -302,8 +309,8 @@ describe("can validate input", () => {
 
     it('should return error when marker has "not mark with" set to unknown markers', () => {
         const markers: Marker[] = [
-            { id: 'm1', expertise: [], phdStudents: [], academic: true, markWith: null, notMarkWith: ['m2', 'm3', 'm4'] },
-            { id: 'm4', expertise: [], phdStudents: [], academic: true, markWith: null, notMarkWith: null },
+            { id: 'm1', expertise: [], phdStudents: [], academic: true, markWith: null, notMarkWith: ['m2', 'm3', 'm4'], availableToMark: true },
+            { id: 'm4', expertise: [], phdStudents: [], academic: true, markWith: null, notMarkWith: null, availableToMark: true },
         ];
         const students: Student[] = [];
         const noOfRooms = 1;
@@ -316,8 +323,8 @@ describe("can validate input", () => {
 
     it('should return no errors for valid input', () => {
         const markers: Marker[] = [
-            { id: 'm1', expertise: [], phdStudents: [], academic: true, markWith: null, notMarkWith: null },
-            { id: 'm2', expertise: [], phdStudents: [], academic: true, markWith: null, notMarkWith: null },
+            { id: 'm1', expertise: [], phdStudents: [], academic: true, markWith: null, notMarkWith: null, availableToMark: true },
+            { id: 'm2', expertise: [], phdStudents: [], academic: true, markWith: null, notMarkWith: null, availableToMark: true },
         ];
         const students: Student[] = [];
         const noOfRooms = 1;

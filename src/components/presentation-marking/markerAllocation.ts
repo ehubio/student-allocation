@@ -18,6 +18,7 @@ export type Marker = {
     academic: boolean,
     markWith: null | string,
     notMarkWith: null | string[],
+    availableToMark: boolean,
     [key: string]: any // Allow additional properties
 };
 
@@ -97,19 +98,20 @@ export const validateInput = (markers: Marker[], students: Student[], noOfRooms:
         return errors
     }
 
-    if (markers.length < noOfRooms * 2) {
-        errors.push(`Cannot allocate to ${noOfRooms} rooms. Only ${markers.length} markers uploaded. ` +
+    const availableMarkers = markers.filter(marker => marker.availableToMark);
+    if (availableMarkers.length < noOfRooms * 2) {
+        errors.push(`Cannot allocate to ${noOfRooms} rooms. Only ${availableMarkers.length} available marker uploaded. ` +
             `There must be at least ${noOfRooms * 2} markers to allocate 2 per room.`)
         return errors
     }
 
-    const markerIds = markers.map((marker: Marker) => marker.id);
+    const markerIds = availableMarkers.map((marker: Marker) => marker.id);
     const markerPairs = new Map<string, string>();
     const markerAvoidPairs = new Map<string, string[]>();
 
-    markers.forEach((marker: Marker) => {
+    availableMarkers.forEach((marker: Marker) => {
         if (marker.markWith) {
-            const pairedMarker = markers.find((m: Marker) => m.id == marker.markWith);
+            const pairedMarker = availableMarkers.find((m: Marker) => m.id == marker.markWith);
             if (!pairedMarker) {
                 errors.push(`Cannot start allocation. Marker ${marker.id} has "mark with" set to ${marker.markWith} who ` +
                     `is not in the list of markers.`);
@@ -155,8 +157,9 @@ export const validateInput = (markers: Marker[], students: Student[], noOfRooms:
         }
     });
 
+    const allMarkerIds = markers.map((marker: Marker) => marker.id);
     students.forEach((student: Student) => {
-        if (!markerIds.includes(student.supervisor)) {
+        if (!allMarkerIds.includes(student.supervisor)) {
             errors.push(`Cannot start allocation. Student '${student.id}' has supervisor '${student.supervisor}' who is not found in markers file.`)
         }
         if (student.marker.length > 2) {
@@ -273,6 +276,7 @@ const setInitialSolution = (markers: Marker[], students: Student[], noOfRooms: n
     const rooms: Room[] = Array(noOfRooms).fill(null).map(() => ({ students: [], markers: [] }));
 
     // Shuffle markers and students for random allocation
+    markers = markers.filter(marker => marker.availableToMark);
     const shuffledMarkers = shuffle(markers);
     const shuffledStudents = shuffle(students);
 

@@ -58,6 +58,7 @@ export const markerSchema = {
         academic: { type: 'boolean' },
         "mark with": { type: 'string' },
         "not mark with": { type: 'string' },
+        "available to mark": { type: 'string' }
     }
 };
 
@@ -91,6 +92,9 @@ export function validateData<T extends { [key: string]: any }>(data: InputData, 
         }
         if ("academic" in obj) {
             obj.academic = toBoolean(obj.academic)
+        }
+        if ("available to mark" in obj) {
+            obj.availableToMark = obj["available to mark"] === "" || toBoolean(obj["available to mark"]);
         }
         const valid = validate(obj);
         if (valid) {
