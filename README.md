@@ -11,3 +11,11 @@ Instructions for use
 2. Optionally include supervisor preferences too
 3. Run the allocation
 4. View and download the results
+
+## Development
+
+Run the app via
+
+```
+npm run dev
+```

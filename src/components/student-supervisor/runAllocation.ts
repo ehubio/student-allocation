@@ -22,7 +22,7 @@ export function runAllocation(students: StudentRow[], supervisors: SupervisorRow
     // therefore there is a chance some are better than others, in this case we want to run the matching
     // a few times to get an optimal result.
     const missingRank = students.map((s: StudentRow) => s.rank)
-        .filter(isEmpty)
+        .filter(isEmpty);
     if (missingRank.length > 0) {
         const allRuns = [...Array(100)].map((_) => {
             const studentsCopy = nestedCopy(students);

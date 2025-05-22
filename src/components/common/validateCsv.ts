@@ -37,13 +37,14 @@ export const supervisorCapacitySchema = {
 
 export const studentPresentationSchema = {
     type: 'object',
-    required: ['id', 'supervisor', 'marker avoid', 'marker'],
+    required: ['id', 'supervisor', 'marker avoid', 'marker', 'requires support'],
     additionalProperties: true,
     properties: {
         id: { type: 'string' },
         supervisor: { type: 'string' },
         "marker avoid": { type: 'string' },
         marker: { type: 'string' },
+        "requires support": { type: 'string' }
     }
 };
 
@@ -141,6 +142,11 @@ export function validateData<T extends { [key: string]: any }>(data: InputData, 
             if ("marker" in obj) {
                 parsedObj.marker = obj.marker ?
                     obj.marker.split(";").map((s: string) => s.trim()) : [];
+            }
+
+            // Parse "requires support"
+            if ("requires support" in obj) {
+                parsedObj.requiresSupport = toBoolean(obj["requires support"])
             }
 
             // Parse not mark with into an array

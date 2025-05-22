@@ -8,6 +8,7 @@ export type Student = {
     supervisor: string,
     markerAvoid: string[],
     marker: string[],
+    requiresSupport: boolean,
     [key: string]: any // Allow additional properties
 };
 
@@ -102,6 +103,13 @@ export const validateInput = (markers: Marker[], students: Student[], noOfRooms:
     if (availableMarkers.length < noOfRooms * 2) {
         errors.push(`Cannot allocate to ${noOfRooms} rooms. Only ${availableMarkers.length} available marker uploaded. ` +
             `There must be at least ${noOfRooms * 2} markers to allocate 2 per room.`)
+        return errors
+    }
+
+    const studentsRequiringSupport = students.filter(student => student.requiresSupport).length;
+    if (studentsRequiringSupport > noOfRooms * 2) {
+        errors.push(`Cannot allocate to ${noOfRooms} rooms. There are ${studentsRequiringSupport} students requiring support. ` +
+            `There can only be 2 students requiring support per room.`)
         return errors
     }
 
@@ -526,7 +534,17 @@ const canSwapStudents = (room1: Room, room2: Room, student1: Student, student2: 
     // const wouldViolateFixedMarkerConstraint =
     //     student1.marker.length > 0 || student2.marker.length > 0;
 
-    return !wouldViolateNotMarkingStudentConstraint && !wouldViolateMarkerAvoidConstraint;
+    // if there are 2 already
+    const room1RequiringSupport = room1.students.filter(s => s.requiresSupport).length;
+    const room2RequiringSupport = room2.students.filter(s => s.requiresSupport).length;
+    const wouldViolate2SupportStudents =
+      student1.requiresSupport === student2.requiresSupport ||
+      student1.requiresSupport && room2RequiringSupport >= 2 ||
+      student2.requiresSupport && room1RequiringSupport >= 2
+
+
+    return !wouldViolateNotMarkingStudentConstraint && !wouldViolateMarkerAvoidConstraint &&
+     !wouldViolate2SupportStudents;
 };
 
 const swapMarkers = (room1: Room, room2: Room, marker1: Marker, marker2: Marker) => {
@@ -653,6 +671,11 @@ export const summariseRoomAllocation = (allocation: RoomAllocation) => {
         ).length;
         totalExpertiseCoveredByBoth += expertiseCoveredByBoth;
 
+        // 6. Count number of students requiring support
+        const numRequiringSupport = room.students.filter(student =>
+            student.requiresSupport
+        ).length;
+
         // Output room summary
         emitter.$emit("progress", `Room ${index + 1}:`);
         emitter.$emit("progress", `  - Number of students: ${numStudents}`)
@@ -661,6 +684,7 @@ export const summariseRoomAllocation = (allocation: RoomAllocation) => {
         emitter.$emit("progress", `  - Students with the same supervisor: ${studentsWithSameSupervisor}`);
         emitter.$emit("progress", `  - Expertise covered by at least one marker: ${expertiseCoveredByAtLeastOne}/${numStudents}`);
         emitter.$emit("progress", `  - Expertise covered by both markers: ${expertiseCoveredByBoth}/${numStudents}`);
+        emitter.$emit("progress", `  - Number of students requiring support: ${numRequiringSupport} (max 2)`)
         emitter.$emit("progress", '');
     });
 
