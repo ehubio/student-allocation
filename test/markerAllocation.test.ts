@@ -31,6 +31,7 @@ test('can mark marker allocation', () => {
                         supervisor: "marker1",
                         markerAvoid: ["marker3"],
                         marker: [],
+                        requiresSupport: false,
                     },
                     {
                         id: "student2",
@@ -38,6 +39,7 @@ test('can mark marker allocation', () => {
                         supervisor: "marker1",
                         markerAvoid: [],
                         marker: [],
+                        requiresSupport: false,
                     }
                 ],
                 markers: [
@@ -60,6 +62,7 @@ test('can mark marker allocation', () => {
                         supervisor: "marker2",
                         markerAvoid: [],
                         marker: [],
+                        requiresSupport: false,
                     }
                 ],
                 markers: [
@@ -136,6 +139,7 @@ test("can allocate markers", () => {
             supervisor: "marker1",
             markerAvoid: [],
             marker: [],
+            requiresSupport: false,
         },
         {
             id: "student1",
@@ -143,6 +147,7 @@ test("can allocate markers", () => {
             supervisor: "marker1",
             markerAvoid: [],
             marker: [],
+            requiresSupport: false,
         },
         {
             id: "student1",
@@ -150,6 +155,7 @@ test("can allocate markers", () => {
             supervisor: "marker3",
             markerAvoid: [],
             marker: [],
+            requiresSupport: false,
         },
         {
             id: "student1",
@@ -157,6 +163,7 @@ test("can allocate markers", () => {
             supervisor: "marker3",
             markerAvoid: [],
             marker: [],
+            requiresSupport: false,
         }
     ]
     const allocated = allocateRooms(markers, students, 2);
@@ -181,9 +188,9 @@ describe('summarizeRoomAllocation', () => {
             rooms: [
                 {
                     students: [
-                        { id: 's1', expertise: ['AI'], supervisor: 'm1', markerAvoid: [], marker: [] },
-                        { id: 's2', expertise: ['ML'], supervisor: 'm2', markerAvoid: [], marker: [] },
-                        { id: 's3', expertise: ['AI'], supervisor: 'm1', markerAvoid: [], marker: [] }
+                        { id: 's1', expertise: ['AI'], supervisor: 'm1', markerAvoid: [], marker: [], requiresSupport: false },
+                        { id: 's2', expertise: ['ML'], supervisor: 'm2', markerAvoid: [], marker: [], requiresSupport: false },
+                        { id: 's3', expertise: ['AI'], supervisor: 'm1', markerAvoid: [], marker: [], requiresSupport: false  }
                     ],
                     markers: [
                         { id: 'm1', expertise: ['AI'], phdStudents: ['s1', 's3'], academic: true, markWith: null, notMarkWith: null, availableToMark: true },
@@ -192,8 +199,8 @@ describe('summarizeRoomAllocation', () => {
                 },
                 {
                     students: [
-                        { id: 's4', expertise: ['Cybersecurity'], supervisor: 'm3', markerAvoid: [], marker: [] },
-                        { id: 's5', expertise: ['AI'], supervisor: 'm4', markerAvoid: [], marker: [] }
+                        { id: 's4', expertise: ['Cybersecurity'], supervisor: 'm3', markerAvoid: [], marker: [], requiresSupport: false  },
+                        { id: 's5', expertise: ['AI'], supervisor: 'm4', markerAvoid: [], marker: [], requiresSupport: false  }
                     ],
                     markers: [
                         { id: 'm3', expertise: ['Cybersecurity'], phdStudents: ['s4'], academic: true, markWith: null, notMarkWith: null, availableToMark: true },
@@ -214,25 +221,27 @@ describe('summarizeRoomAllocation', () => {
         expect(emitMock.mock.calls[4][1]).toStrictEqual("  - Students with the same supervisor: 1");
         expect(emitMock.mock.calls[5][1]).toStrictEqual("  - Expertise covered by at least one marker: 3/3");
         expect(emitMock.mock.calls[6][1]).toStrictEqual("  - Expertise covered by both markers: 0/3");
+        expect(emitMock.mock.calls[7][1]).toStrictEqual("  - Number of students requiring support: 0 (max 2)");
 
         // Check logs for second room
-        expect(emitMock.mock.calls[8][1]).toStrictEqual("Room 2:");
-        expect(emitMock.mock.calls[9][1]).toStrictEqual("  - Number of students: 2");
-        expect(emitMock.mock.calls[10][1]).toStrictEqual("  - Number of markers: 2/2 (academic/total)");
-        expect(emitMock.mock.calls[11][1]).toStrictEqual("  - Students with their supervisor in the room: 2/2");
-        expect(emitMock.mock.calls[12][1]).toStrictEqual("  - Students with the same supervisor: 0");
-        expect(emitMock.mock.calls[13][1]).toStrictEqual("  - Expertise covered by at least one marker: 2/2");
-        expect(emitMock.mock.calls[14][1]).toStrictEqual("  - Expertise covered by both markers: 0/2");
+        expect(emitMock.mock.calls[9][1]).toStrictEqual("Room 2:");
+        expect(emitMock.mock.calls[10][1]).toStrictEqual("  - Number of students: 2");
+        expect(emitMock.mock.calls[11][1]).toStrictEqual("  - Number of markers: 2/2 (academic/total)");
+        expect(emitMock.mock.calls[12][1]).toStrictEqual("  - Students with their supervisor in the room: 2/2");
+        expect(emitMock.mock.calls[13][1]).toStrictEqual("  - Students with the same supervisor: 0");
+        expect(emitMock.mock.calls[14][1]).toStrictEqual("  - Expertise covered by at least one marker: 2/2");
+        expect(emitMock.mock.calls[15][1]).toStrictEqual("  - Expertise covered by both markers: 0/2");
+        expect(emitMock.mock.calls[16][1]).toStrictEqual("  - Number of students requiring support: 0 (max 2)");
 
         // Check overall summary
-        expect(emitMock.mock.calls[16][1]).toStrictEqual("Overall Summary:");
-        expect(emitMock.mock.calls[17][1]).toStrictEqual("  - Total students: 5");
-        expect(emitMock.mock.calls[18][1]).toStrictEqual("  - Total rooms: 2");
-        expect(emitMock.mock.calls[19][1]).toStrictEqual("  - Total academic markers: 3");
-        expect(emitMock.mock.calls[20][1]).toStrictEqual("  - Total students with their supervisor in the room: 5");
-        expect(emitMock.mock.calls[21][1]).toStrictEqual("  - Total students with the same supervisor in the room: 1");
-        expect(emitMock.mock.calls[22][1]).toStrictEqual("  - Students whose expertise is covered by at least one marker: 100.00%");
-        expect(emitMock.mock.calls[23][1]).toStrictEqual("  - Students whose expertise is covered by both markers: 0.00%");
+        expect(emitMock.mock.calls[18][1]).toStrictEqual("Overall Summary:");
+        expect(emitMock.mock.calls[19][1]).toStrictEqual("  - Total students: 5");
+        expect(emitMock.mock.calls[20][1]).toStrictEqual("  - Total rooms: 2");
+        expect(emitMock.mock.calls[21][1]).toStrictEqual("  - Total academic markers: 3");
+        expect(emitMock.mock.calls[22][1]).toStrictEqual("  - Total students with their supervisor in the room: 5");
+        expect(emitMock.mock.calls[23][1]).toStrictEqual("  - Total students with the same supervisor in the room: 1");
+        expect(emitMock.mock.calls[24][1]).toStrictEqual("  - Students whose expertise is covered by at least one marker: 100.00%");
+        expect(emitMock.mock.calls[25][1]).toStrictEqual("  - Students whose expertise is covered by both markers: 0.00%");
     });
 
     it('should handle empty room allocation gracefully', () => {
